@@ -215,6 +215,8 @@ async def get_scan_status(scan_id: str, db = Depends(get_async_session)):
                 "vulnerabilities_found": db_scan.vulnerability_count,
                 "severity_distribution": severity_counts
             },
+            "discovered_urls": db_scan.discovered_urls or [],
+            "scanned_urls": db_scan.scanned_urls or [],
             "vulnerabilities": vulns_list,
             "modules_used": db_scan.config.get("included_modules", []) if db_scan.config else [],
             "ai_analysis_enabled": db_scan.config.get("ai_analysis", True) if db_scan.config else True

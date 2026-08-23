@@ -152,6 +152,7 @@ function ScanResults({ addToast }) {
   const [loading, setLoading] = useState(true);
   const [expandedVuln, setExpandedVuln] = useState(null);
   const [showVerbose, setShowVerbose] = useState(true);
+  const [urlModal, setUrlModal] = useState(null);
   const wsRef = useRef(null);
 
   const handleCancelScan = async () => {
@@ -594,15 +595,35 @@ function ScanResults({ addToast }) {
 
       {/* Stats counters */}
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-        <div className="card stat-card">
+        <div 
+          className="card stat-card" 
+          onClick={() => setUrlModal({ type: 'discovered', urls: scan.discovered_urls || [] })}
+          style={{ cursor: 'pointer', transition: 'transform 0.2s ease, box-shadow 0.2s ease' }}
+          title="Click to view discovered pages"
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+        >
           <div className="stat-info">
-            <h4>Pages Found</h4>
+            <h4 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              Pages Found
+              <span style={{ fontSize: '0.65rem', color: 'var(--accent-primary)', textTransform: 'uppercase', fontWeight: 600 }}>Click to View</span>
+            </h4>
             <div className="stat-value">{summary.pages_discovered}</div>
           </div>
         </div>
-        <div className="card stat-card">
+        <div 
+          className="card stat-card" 
+          onClick={() => setUrlModal({ type: 'scanned', urls: scan.scanned_urls || [] })}
+          style={{ cursor: 'pointer', transition: 'transform 0.2s ease, box-shadow 0.2s ease' }}
+          title="Click to view scanned pages"
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+        >
           <div className="stat-info">
-            <h4>Pages Scanned</h4>
+            <h4 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              Pages Scanned
+              <span style={{ fontSize: '0.65rem', color: 'var(--accent-primary)', textTransform: 'uppercase', fontWeight: 600 }}>Click to View</span>
+            </h4>
             <div className="stat-value">{summary.pages_scanned}</div>
           </div>
         </div>
@@ -912,6 +933,134 @@ function ScanResults({ addToast }) {
           </div>
         )}
       </div>
+      {urlModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(12px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setUrlModal(null)}
+        >
+          <div 
+            style={{
+              width: '90%',
+              maxWidth: '650px',
+              maxHeight: '80vh',
+              background: 'rgba(23, 23, 23, 0.85)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '12px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
+                {urlModal.type === 'discovered' ? 'Discovered Pages' : 'Scanned Pages'} ({urlModal.urls.length})
+              </h4>
+              <button 
+                onClick={() => setUrlModal(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                  lineHeight: '1'
+                }}
+              >
+                &times;
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+              {urlModal.urls.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-secondary)' }}>
+                  No pages have been {urlModal.type === 'discovered' ? 'discovered' : 'scanned'} yet.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {urlModal.urls.map((url, idx) => (
+                    <div 
+                      key={idx}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid rgba(255, 255, 255, 0.04)',
+                        borderRadius: '6px',
+                        fontFamily: 'monospace',
+                        fontSize: '0.85rem',
+                        wordBreak: 'break-all',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '1rem'
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-primary)' }}>{url}</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(url);
+                          addToast('URL copied to clipboard', 'success');
+                        }}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: 'none',
+                          color: 'var(--accent-primary)',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Modal Footer */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              background: 'rgba(0, 0, 0, 0.2)'
+            }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setUrlModal(null)}
+                style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

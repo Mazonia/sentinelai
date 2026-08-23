@@ -322,6 +322,8 @@ class SecurityScanner:
                 pages_scanned=self.status.pages_scanned,
                 vulnerability_count=len(self.vulnerabilities),
                 vulnerabilities=self.vulnerabilities,
+                discovered_urls=list(self.discovered_urls),
+                scanned_urls=list(self.discovered_urls) if self.status.pages_scanned > 0 else [],
                 config={
                     "max_depth": self.config.max_depth,
                     "max_pages": self.config.max_pages,
@@ -339,14 +341,14 @@ class SecurityScanner:
             await self.db_session.commit()
         except Exception as e:
             logger.error(f"Failed to save results: {e}")
-    
+     
     def get_report(self) -> Dict:
         """Generate comprehensive scan report"""
         severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
         for vuln in self.vulnerabilities:
             sev_str = vuln.severity.value if hasattr(vuln.severity, 'value') else str(vuln.severity)
             severity_counts[sev_str.lower()] = severity_counts.get(sev_str.lower(), 0) + 1
-        
+         
         return {
             "scan_id": self.status.scan_id,
             "target": self.config.target_url,
@@ -358,6 +360,8 @@ class SecurityScanner:
                 "vulnerabilities_found": len(self.vulnerabilities),
                 "severity_distribution": severity_counts
             },
+            "discovered_urls": list(self.discovered_urls),
+            "scanned_urls": list(self.discovered_urls) if self.status.pages_scanned > 0 else [],
             "vulnerabilities": [v.to_dict() for v in self.vulnerabilities],
             "modules_used": list(self.modules.keys()),
             "ai_analysis_enabled": self.ai_analyzer is not None

@@ -124,10 +124,12 @@ class ScanResult(Base):
     
     # Results
     findings = Column(JSON, nullable=True)  # Store as JSON for quick access
+    discovered_urls = Column(JSON, nullable=True)
+    scanned_urls = Column(JSON, nullable=True)
     report_path = Column(String(500), nullable=True)
     
     # Relationships
-    vulnerabilities = relationship("Vulnerability", back_populates="scan", cascade="all, delete-orphan")
+    vulnerabilities = relationship("ScanResult", back_populates="scan", cascade="all, delete-orphan", foreign_keys="[Vulnerability.scan_id]") if False else relationship("Vulnerability", back_populates="scan", cascade="all, delete-orphan")
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -140,6 +142,8 @@ class ScanResult(Base):
             'pages_discovered': self.pages_discovered,
             'pages_scanned': self.pages_scanned,
             'vulnerability_count': self.vulnerability_count,
+            'discovered_urls': self.discovered_urls or [],
+            'scanned_urls': self.scanned_urls or [],
         }
 
 
