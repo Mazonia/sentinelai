@@ -1,0 +1,64 @@
+# SentinelAI Configuration
+
+scanner:
+  default_timeout: 30
+  max_concurrent: 20
+  max_depth: 3
+  max_pages: 100
+  respect_robots_txt: false
+  follow_redirects: true
+  
+  # Module settings
+  modules:
+    injection:
+      enabled: true
+      intensity: medium  # low, medium, high
+    xss:
+      enabled: true
+      intensity: medium
+    auth:
+      enabled: true
+      test_common_credentials: true
+    config:
+      enabled: true
+      check_ssl: true
+    api:
+      enabled: true
+      test_idor: true
+  
+  # AI settings
+  ai:
+    enabled: true
+    model: llama-3.3-70b
+    confidence_threshold: 0.3
+    generate_remediation: true
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  cors_origins:
+    - "*"
+  rate_limit: "100/minute"
+
+database:
+  url: postgresql+asyncpg://sentinel:sentinel@localhost/sentinelai
+  pool_size: 20
+  max_overflow: 10
+
+redis:
+  url: redis://localhost:6379/0
+
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: logs/sentinelai.log
+
+notifications:
+  slack:
+    webhook_url: ""
+  email:
+    smtp_host: ""
+    smtp_port: 587
+    username: ""
+    password: ""
+    from_address: "sentinel@localhost"

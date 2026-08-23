@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://sentinel:sentinel@db:5432/sentinelai
+      - REDIS_URL=redis://redis:6379/0
+      - VENICE_API_KEY=${VENICE_API_KEY}
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./reports:/app/reports
+    networks:
+      - sentinel-network
+
+  worker:
+    build: .
+    command: celery -A sentinelai.automation.scheduler worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://sentinel:sentinel@db:5432/sentinelai
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - db
+      - redis
+    networks:
+      - sentinel-network
+
+  scheduler:
+    build: .
+    command: celery -A sentinelai.automation.scheduler beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://sentinel:sentinel@db:5432/sentinelai
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - db
+      - redis
+    networks:
+      - sentinel-network
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=sentinel
+      - POSTGRES_PASSWORD=sentinel
+      - POSTGRES_DB=sentinelai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - sentinel-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - sentinel-network
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    networks:
+      - sentinel-network
+
+volumes:
+  postgres_data:
+
+networks:
+  sentinel-network:
+    driver: bridge
