@@ -9,6 +9,7 @@ services:
       - DATABASE_URL=postgresql+asyncpg://sentinel:sentinel@db:5432/sentinelai
       - REDIS_URL=redis://redis:6379/0
       - VENICE_API_KEY=${VENICE_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
       - PYTHONUNBUFFERED=1
     depends_on:
       - db
@@ -24,6 +25,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://sentinel:sentinel@db:5432/sentinelai
       - REDIS_URL=redis://redis:6379/0
+      - GROQ_API_KEY=${GROQ_API_KEY}
       - PYTHONUNBUFFERED=1
     depends_on:
       - db
@@ -37,6 +39,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://sentinel:sentinel@db:5432/sentinelai
       - REDIS_URL=redis://redis:6379/0
+      - GROQ_API_KEY=${GROQ_API_KEY}
       - PYTHONUNBUFFERED=1
     depends_on:
       - db

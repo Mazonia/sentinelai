@@ -14,7 +14,9 @@ class PayloadGenerator:
     """
     
     def __init__(self):
+        import os
         self.payload_db = self._initialize_payloads()
+        self.groq_api_key = os.getenv("GROQ_API_KEY")
         self.context_history = []
     
     def _initialize_payloads(self) -> Dict:
@@ -131,7 +133,7 @@ class PayloadGenerator:
         payloads = self.payload_db['xss'].get(context, self.payload_db['xss']['html'])
         return random.sample(payloads, min(count, len(payloads)))
     
-    def generate_context_aware_payload(
+    async def generate_context_aware_payload(
         self,
         vuln_type: str,
         target_tech: Optional[str] = None,
@@ -140,6 +142,37 @@ class PayloadGenerator:
         """
         Generate payload based on target technology and previous responses
         """
+        if self.groq_api_key:
+            import aiohttp
+            try:
+                system_prompt = "You are an expert security automation assistant. Generate exactly ONE highly effective test payload for security auditing. Return only the raw payload string, without any explanations, markdown code blocks, or tags."
+                user_prompt = f"Vulnerability Type: {vuln_type}\nTarget Technology: {target_tech or 'Generic'}\nPrevious tests: {previous_responses or []}\nGenerate one optimized payload to test this endpoint."
+                
+                url = "https://api.groq.com/openai/v1/chat/completions"
+                headers = {
+                    "Authorization": f"Bearer {self.groq_api_key}",
+                    "Content-Type": "application/json"
+                }
+                data = {
+                    "model": "llama-3.3-70b-specdec",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    "temperature": 0.4
+                }
+                
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, headers=headers, json=data, timeout=5) as resp:
+                        if resp.status == 200:
+                            res_json = await resp.json()
+                            payload = res_json['choices'][0]['message']['content'].strip()
+                            if payload.startswith("`") and payload.endswith("`"):
+                                payload = payload.strip("`")
+                            return payload
+            except Exception as e:
+                logger.error(f"Error generating AI payload via Groq: {e}")
+
         # Learn from previous responses to generate better payloads
         if previous_responses:
             # Analyze what worked before

@@ -19,7 +19,41 @@ class AIAnalyzer:
     
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("VENICE_API_KEY")
+        self.groq_api_key = os.getenv("GROQ_API_KEY")
         self.context_cache = {}
+
+    async def _call_groq_ai(self, system_prompt: str, user_prompt: str) -> Optional[str]:
+        """Call Groq API using aiohttp"""
+        if not self.groq_api_key:
+            return None
+            
+        import aiohttp
+        try:
+            url = "https://api.groq.com/openai/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {self.groq_api_key}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "model": "llama-3.3-70b-specdec",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "temperature": 0.2
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, json=data, timeout=10) as resp:
+                    if resp.status == 200:
+                        res_json = await resp.json()
+                        return res_json['choices'][0]['message']['content'].strip()
+                    else:
+                        logger.warning(f"Groq API returned status code {resp.status}")
+        except Exception as e:
+            logger.error(f"Error calling Groq API: {e}")
+            
+        return None
 
     async def _call_venice_ai(self, system_prompt: str, user_prompt: str) -> Optional[str]:
         """Call Venice AI API using aiohttp"""
@@ -174,10 +208,15 @@ class AIAnalyzer:
         """
         Generate AI-powered specific remediation advice
         """
+        system_prompt = "You are an expert security remediation advisor. Provide clear, step-by-step remediation advice for the following vulnerability."
+        user_prompt = f"Vulnerability Type: {vuln.type}\nSeverity: {vuln.severity}\nTarget URL: {vuln.url}\nParameter: {vuln.parameter}\nEvidence: {vuln.evidence}\nDescription: {vuln.description}\nProvide 5 specific, concrete steps to fix this."
+        
+        if self.groq_api_key:
+            ai_advice = await self._call_groq_ai(system_prompt, user_prompt)
+            if ai_advice:
+                return ai_advice
+
         if self.api_key:
-            system_prompt = "You are an expert security remediation advisor. Provide clear, step-by-step remediation advice for the following vulnerability."
-            user_prompt = f"Vulnerability Type: {vuln.type}\nSeverity: {vuln.severity}\nTarget URL: {vuln.url}\nParameter: {vuln.parameter}\nEvidence: {vuln.evidence}\nDescription: {vuln.description}\nProvide 5 specific, concrete steps to fix this."
-            
             ai_advice = await self._call_venice_ai(system_prompt, user_prompt)
             if ai_advice:
                 return ai_advice
@@ -240,11 +279,16 @@ class AIAnalyzer:
         """
         Generate a realistic attack scenario for the vulnerability
         """
+        system_prompt = "You are a senior penetration tester. Generate a realistic, detailed step-by-step attack scenario showing how an attacker could exploit this vulnerability."
+        payload_str = vuln.payload if vuln.payload else "N/A"
+        user_prompt = f"Vulnerability Type: {vuln.type}\nURL: {vuln.url}\nParameter: {vuln.parameter}\nPayload tested: {payload_str}\nEvidence: {vuln.evidence}\nWrite a numbered step-by-step scenario."
+        
+        if self.groq_api_key:
+            ai_scenario = await self._call_groq_ai(system_prompt, user_prompt)
+            if ai_scenario:
+                return ai_scenario
+
         if self.api_key:
-            system_prompt = "You are a senior penetration tester. Generate a realistic, detailed step-by-step attack scenario showing how an attacker could exploit this vulnerability."
-            payload_str = vuln.payload if vuln.payload else "N/A"
-            user_prompt = f"Vulnerability Type: {vuln.type}\nURL: {vuln.url}\nParameter: {vuln.parameter}\nPayload tested: {payload_str}\nEvidence: {vuln.evidence}\nWrite a numbered step-by-step scenario."
-            
             ai_scenario = await self._call_venice_ai(system_prompt, user_prompt)
             if ai_scenario:
                 return ai_scenario
