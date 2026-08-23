@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ShieldAlert, CheckCircle, ChevronDown, ChevronUp, AlertCircle, Ban } from 'lucide-react';
+import { ArrowLeft, ShieldAlert, CheckCircle, ChevronDown, ChevronUp, AlertCircle, Ban, ExternalLink } from 'lucide-react';
 
 const scanPhases = [
   { id: 'discovery', label: 'Discovery / Crawling', desc: 'Crawling site map and discovering target URLs' },
@@ -1018,24 +1018,45 @@ function ScanResults({ addToast }) {
                       }}
                     >
                       <span style={{ color: 'var(--text-primary)' }}>{url}</span>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(url);
-                          addToast('URL copied to clipboard', 'success');
-                        }}
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          border: 'none',
-                          color: 'var(--accent-primary)',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        Copy
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(url);
+                            addToast('URL copied to clipboard', 'success');
+                          }}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: 'none',
+                            color: 'var(--accent-primary)',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          Copy
+                        </button>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            color: 'var(--accent-primary)',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            textDecoration: 'none'
+                          }}
+                          title="Open in new tab"
+                        >
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
                     </div>
                   ))}
                 </div>
