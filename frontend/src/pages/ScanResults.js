@@ -435,6 +435,96 @@ function ScanResults({ addToast }) {
     return 'pending';
   };
 
+  const renderEvidence = (vuln) => {
+    if (!vuln.evidence) return null;
+    
+    try {
+      const evidence = typeof vuln.evidence === 'string' ? JSON.parse(vuln.evidence) : vuln.evidence;
+      
+      // 1. Missing Security Headers
+      if (vuln.type === 'missing_security_headers' && evidence.missing) {
+        return (
+          <div className="detail-section">
+            <h5 style={{ color: 'var(--accent-primary)', marginBottom: '0.5rem' }}>Missing Security Headers Details</h5>
+            <table className="evidence-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', textAlign: 'left' }}>
+                  <th style={{ padding: '0.5rem', color: 'var(--accent-primary)' }}>Header</th>
+                  <th style={{ padding: '0.5rem', color: 'var(--text-secondary)' }}>Status / Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {evidence.missing.map((item, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                    <td style={{ padding: '0.5rem', fontFamily: 'monospace', fontWeight: 600 }}>{item.header}</td>
+                    <td style={{ padding: '0.5rem', color: 'var(--text-secondary)' }}>{item.description}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+      
+      // 2. Insecure Session Cookie
+      if (vuln.type === 'insecure_session_cookie' && evidence.issues) {
+        return (
+          <div className="detail-section">
+            <h5 style={{ color: 'var(--accent-primary)', marginBottom: '0.5rem' }}>Cookie Configuration Flag Issues</h5>
+            <ul style={{ margin: '0.5rem 0 0 1.25rem', padding: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              {evidence.issues.map((issue, idx) => (
+                <li key={idx} style={{ listStyleType: 'disc' }}>
+                  <span style={{ color: 'var(--color-critical)', fontWeight: 500 }}>{issue}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
+
+      // 3. Information Disclosure (Server Header)
+      if (vuln.type === 'information_disclosure' && (evidence.server_header || evidence.x_powered_by)) {
+        return (
+          <div className="detail-section">
+            <h5 style={{ color: 'var(--accent-primary)', marginBottom: '0.5rem' }}>Information Disclosure Banner Evidence</h5>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginTop: '0.5rem', fontSize: '0.85rem' }}>
+              {evidence.server_header && (
+                <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Server Header Found</div>
+                  <div style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--color-low)', marginTop: '0.25rem' }}>{evidence.server_header}</div>
+                </div>
+              )}
+              {evidence.x_powered_by && (
+                <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase' }}>X-Powered-By Header Found</div>
+                  <div style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--color-low)', marginTop: '0.25rem' }}>{evidence.x_powered_by}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // 4. General JSON proof
+      return (
+        <div className="detail-section">
+          <h5 style={{ color: 'var(--accent-primary)', marginBottom: '0.5rem' }}>Vulnerability Verification Evidence</h5>
+          <pre className="code-box" style={{ fontSize: '0.8rem', backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
+            {JSON.stringify(evidence, null, 2)}
+          </pre>
+        </div>
+      );
+      
+    } catch (e) {
+      return (
+        <div className="detail-section">
+          <h5 style={{ color: 'var(--accent-primary)', marginBottom: '0.5rem' }}>Vulnerability Verification Log</h5>
+          <pre className="code-box" style={{ fontSize: '0.8rem' }}>{String(vuln.evidence)}</pre>
+        </div>
+      );
+    }
+  };
+
   const { status, target, duration, summary, vulnerabilities } = scan;
 
   return (
@@ -777,6 +867,8 @@ function ScanResults({ addToast }) {
                         </div>
                       </div>
                     )}
+
+                    {renderEvidence(vuln)}
 
                     {vuln.payload && (
                       <div className="detail-section">

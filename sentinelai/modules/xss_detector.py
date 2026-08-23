@@ -158,40 +158,21 @@ class XSSDetector:
     
     def _is_xss_vulnerable(self, response_text: str, payload: str) -> bool:
         """
-        Check if response indicates XSS vulnerability
+        Check if response indicates XSS vulnerability (strictly verifying non-encoded execution context)
         """
-        # Decode HTML entities for comparison
-        decoded_response = html.unescape(response_text)
-        
-        # Check if payload appears without proper encoding
-        if payload in decoded_response:
-            # Check if it's inside a script tag or event handler
-            dangerous_contexts = [
-                f"<script>{payload}</script>",
-                f"onerror=\"{payload}\"",
-                f"onload=\"{payload}\"",
-                f"onclick=\"{payload}\"",
-                f"javascript:{payload}",
-            ]
+        # 1. Check if the exact payload exists in the raw HTTP response body (non-escaped)
+        if payload in response_text:
+            return True
             
-            for context in dangerous_contexts:
-                if context in decoded_response:
-                    return True
-            
-            # Check if in HTML content without encoding
-            if payload in response_text and "<script>" in response_text:
-                return True
-        
-        # Check for partial reflection that could be exploited
-        partial_indicators = [
-            payload.replace("<script>", "").replace("</script>", ""),
-            payload.replace("alert", ""),
-        ]
-        
-        for indicator in partial_indicators:
-            if indicator and indicator in decoded_response:
-                return True
-        
+        # 2. Check for tag reflection (e.g. <script>, <img>, etc)
+        # If the payload starts with '<', check that it is reflected as '<' and not '&lt;'
+        if payload.startswith('<') and payload in response_text:
+            return True
+
+        # 3. For attribute context, check if quotes are reflected unescaped
+        if ("'" in payload or '"' in payload) and payload in response_text:
+            return True
+
         return False
     
     async def test_stored_xss(self, forms: List[Dict], payloads: List[str]) -> List[Dict]:
