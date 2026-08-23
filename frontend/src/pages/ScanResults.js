@@ -2,11 +2,156 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ShieldAlert, CheckCircle, ChevronDown, ChevronUp, AlertCircle, Ban } from 'lucide-react';
 
+const scanPhases = [
+  { id: 'discovery', label: 'Discovery / Crawling', desc: 'Crawling site map and discovering target URLs' },
+  { id: 'config', label: 'Security Configuration', desc: 'Checking security headers, cookies, and CORS settings' },
+  { id: 'injection', label: 'SQL Injection', desc: 'Testing for database query injection flaws' },
+  { id: 'xss', label: 'Cross-Site Scripting', desc: 'Testing for input reflection and payload execution' },
+  { id: 'auth', label: 'Authentication Bypass', desc: 'Testing password strengths and credential bypasses' },
+  { id: 'api', label: 'API Security', desc: 'Analyzing endpoint query parameters and route exposures' },
+  { id: 'privilege', label: 'Privilege Escalation', desc: 'Testing low-to-high privilege access controls' },
+  { id: 'session', label: 'Session Security', desc: 'Checking session fixation, hijacking, and prediction vulnerabilities' },
+  { id: 'exploitation', label: 'Automated Exploitation', desc: 'Attempting safe confirmation of discovered flaws' }
+];
+
+const getVerboseLogs = (scan) => {
+  const logs = [];
+  if (!scan) return logs;
+  
+  const addLog = (msg, type = 'info') => {
+    logs.push({ time: new Date().toLocaleTimeString(), msg, type });
+  };
+  
+  addLog(`Initializing Security Scanner for target: ${scan.target}`, 'info');
+  addLog(`Establishing database session for scan ID: ${scan.scan_id}`, 'info');
+  
+  const phases = ['discovery', 'config', 'injection', 'xss', 'auth', 'api', 'privilege', 'session', 'exploitation'];
+  const currentIndex = phases.indexOf(scan.current_module);
+  
+  if (currentIndex >= 0 || scan.status === 'completed') {
+    // Discovery
+    addLog('Starting crawler phase...', 'info');
+    if (currentIndex > 0 || scan.status === 'completed') {
+      addLog(`Crawled targets successfully. Discovered ${scan.summary.pages_discovered} pages.`, 'success');
+    }
+    
+    // Config
+    if (currentIndex >= 1 || scan.status === 'completed') {
+      addLog('Scanning server configuration and security headers...', 'info');
+      if (currentIndex > 1 || scan.status === 'completed') {
+        const headerVulns = scan.vulnerabilities.filter(v => v.module === 'config');
+        if (headerVulns.length > 0) {
+          addLog(`Config review complete: found ${headerVulns.length} potential misconfigurations.`, 'warning');
+        } else {
+          addLog('Config review complete: no header issues found.', 'success');
+        }
+      }
+    }
+    
+    // Injection
+    if (currentIndex >= 2 || scan.status === 'completed') {
+      addLog('Running SQL injection payload tests on forms and parameters...', 'info');
+      if (currentIndex > 2 || scan.status === 'completed') {
+        const injVulns = scan.vulnerabilities.filter(v => v.module === 'injection');
+        if (injVulns.length > 0) {
+          addLog(`SQL Injection scan complete: FOUND ${injVulns.length} VULNERABILITIES!`, 'danger');
+        } else {
+          addLog('SQL Injection scan complete: no injection vectors found.', 'success');
+        }
+      }
+    }
+    
+    // XSS
+    if (currentIndex >= 3 || scan.status === 'completed') {
+      addLog('Testing Cross-Site Scripting (XSS) filters with input payloads...', 'info');
+      if (currentIndex > 3 || scan.status === 'completed') {
+        const xssVulns = scan.vulnerabilities.filter(v => v.module === 'xss');
+        if (xssVulns.length > 0) {
+          addLog(`XSS scan complete: FOUND ${xssVulns.length} VULNERABILITIES!`, 'danger');
+        } else {
+          addLog('XSS scan complete: no script injection vectors found.', 'success');
+        }
+      }
+    }
+    
+    // Auth
+    if (currentIndex >= 4 || scan.status === 'completed') {
+      addLog('Testing login security and authentication bypass vectors...', 'info');
+      if (currentIndex > 4 || scan.status === 'completed') {
+        const authVulns = scan.vulnerabilities.filter(v => v.module === 'auth');
+        if (authVulns.length > 0) {
+          addLog(`Authentication bypass scan complete: FOUND ${authVulns.length} issues.`, 'danger');
+        } else {
+          addLog('Authentication bypass scan complete: no issues found.', 'success');
+        }
+      }
+    }
+    
+    // API
+    if (currentIndex >= 5 || scan.status === 'completed') {
+      addLog('Analyzing API route exposures and query arguments...', 'info');
+      if (currentIndex > 5 || scan.status === 'completed') {
+        const apiVulns = scan.vulnerabilities.filter(v => v.module === 'api');
+        if (apiVulns.length > 0) {
+          addLog(`API scan complete: FOUND ${apiVulns.length} vulnerabilities.`, 'warning');
+        } else {
+          addLog('API scan complete: endpoints secured.', 'success');
+        }
+      }
+    }
+
+    // Privilege
+    if (currentIndex >= 6 || scan.status === 'completed') {
+      addLog('Running low-to-high privilege escalation access control tests...', 'info');
+      if (currentIndex > 6 || scan.status === 'completed') {
+        const privVulns = scan.vulnerabilities.filter(v => v.module === 'privilege');
+        if (privVulns.length > 0) {
+          addLog(`Privilege escalation scan complete: FOUND ${privVulns.length} authorization flaws.`, 'danger');
+        } else {
+          addLog('Privilege escalation scan complete: privilege boundaries enforced.', 'success');
+        }
+      }
+    }
+
+    // Session
+    if (currentIndex >= 7 || scan.status === 'completed') {
+      addLog('Analyzing session fixation, hijacking, and prediction entropy...', 'info');
+      if (currentIndex > 7 || scan.status === 'completed') {
+        const sessVulns = scan.vulnerabilities.filter(v => v.module === 'session');
+        if (sessVulns.length > 0) {
+          addLog(`Session security scan complete: FOUND ${sessVulns.length} session vulnerabilities.`, 'warning');
+        } else {
+          addLog('Session security scan complete: session tokens secure.', 'success');
+        }
+      }
+    }
+    
+    // Exploitation
+    if (currentIndex >= 8 || scan.status === 'completed') {
+      addLog('Initiating Safe Automated Exploitation verification...', 'info');
+      if (scan.status === 'completed') {
+        const confirmed = scan.vulnerabilities.filter(v => v.exploitation_confirmed);
+        addLog(`Safe Exploitation completed. Confirmed ${confirmed.length} active vulnerabilities.`, confirmed.length > 0 ? 'warning' : 'success');
+        addLog(`Scan successfully finished. Committing findings to PostgreSQL database.`, 'success');
+      }
+    }
+  }
+  
+  if (scan.status === 'failed') {
+    addLog(`Scanner failed: ${scan.error_message || 'Internal Scanner Error'}`, 'danger');
+  } else if (scan.status === 'cancelled') {
+    addLog('Scan execution aborted by user request.', 'danger');
+  }
+  
+  return logs;
+};
+
 function ScanResults({ addToast }) {
   const { scanId } = useParams();
   const [scan, setScan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expandedVuln, setExpandedVuln] = useState(null);
+  const [showVerbose, setShowVerbose] = useState(true);
   const wsRef = useRef(null);
 
   const handleCancelScan = async () => {
@@ -71,12 +216,14 @@ function ScanResults({ addToast }) {
           const data = await res.json();
           if (isMounted) setScan(data);
         } else {
-          if (scanId.startsWith('scan_')) {
+          if (!scanId.startsWith('scan_')) {
             startSimulation();
+          } else {
+            addToast('Could not load scan status', 'error');
           }
         }
       } catch (err) {
-        if (scanId.startsWith('scan_')) {
+        if (!scanId.startsWith('scan_')) {
           startSimulation();
         } else {
           addToast('Could not load scan status', 'error');
@@ -201,7 +348,7 @@ function ScanResults({ addToast }) {
       }, 2000);
     }
 
-    if (!scanId.startsWith('scan_')) {
+    if (scanId.startsWith('scan_')) {
       fetchInitial();
       
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -241,7 +388,7 @@ function ScanResults({ addToast }) {
         }, 3000);
       };
     } else {
-      fetchInitial();
+      startSimulation();
     }
 
     return () => {
@@ -271,6 +418,22 @@ function ScanResults({ addToast }) {
       </div>
     );
   }
+
+  const getPhaseState = (phaseId) => {
+    if (scan.status === 'completed') return 'completed';
+    if (scan.status === 'failed') return 'failed';
+    if (scan.status === 'cancelled') {
+      return scan.current_module === phaseId ? 'cancelled' : 'pending';
+    }
+    
+    const phases = ['discovery', 'config', 'injection', 'xss', 'auth', 'api', 'privilege', 'session', 'exploitation'];
+    const currentIdx = phases.indexOf(scan.current_module);
+    const phaseIdx = phases.indexOf(phaseId);
+    
+    if (phaseIdx < currentIdx) return 'completed';
+    if (phaseIdx === currentIdx) return 'running';
+    return 'pending';
+  };
 
   const { status, target, duration, summary, vulnerabilities } = scan;
 
@@ -390,6 +553,129 @@ function ScanResults({ addToast }) {
             <span style={{ fontSize: '1.25rem', fontWeight: 700, color: `var(--color-${sev})` }}>{count}</span>
           </div>
         ))}
+      </div>
+
+      {/* Verbose Scan Progress Panel */}
+      <div className="card" style={{ marginBottom: '2rem' }}>
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 className="card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span className="status-dot status-running" style={{ width: '8px', height: '8px', display: status === 'running' ? 'inline-block' : 'none' }}></span>
+            Scan Execution Pipeline & Logs
+          </h3>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => setShowVerbose(!showVerbose)}
+            style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}
+          >
+            {showVerbose ? 'Hide Verbose Logs' : 'Show Verbose Logs'}
+          </button>
+        </div>
+        
+        <div style={{ padding: '1.5rem' }}>
+          {/* Phase progress grid */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+            gap: '1rem', 
+            marginBottom: showVerbose ? '1.5rem' : 0 
+          }}>
+            {scanPhases.map((phase) => {
+              const state = getPhaseState(phase.id);
+              let icon = '⚪';
+              let color = 'var(--text-secondary)';
+              let border = 'rgba(255, 255, 255, 0.05)';
+              let bg = 'rgba(255, 255, 255, 0.01)';
+              
+              if (state === 'completed') {
+                icon = '✅';
+                color = 'var(--color-success)';
+                border = 'rgba(16, 185, 129, 0.2)';
+                bg = 'rgba(16, 185, 129, 0.02)';
+              } else if (state === 'running') {
+                icon = '⚡';
+                color = 'var(--accent-primary)';
+                border = 'rgba(59, 130, 246, 0.4)';
+                bg = 'rgba(59, 130, 246, 0.05)';
+              } else if (state === 'failed') {
+                icon = '❌';
+                color = 'var(--color-critical)';
+                border = 'rgba(239, 68, 68, 0.2)';
+                bg = 'rgba(239, 68, 68, 0.02)';
+              } else if (state === 'cancelled') {
+                icon = '🚫';
+                color = 'var(--text-secondary)';
+                border = 'rgba(239, 68, 68, 0.2)';
+              }
+              
+              return (
+                <div 
+                  key={phase.id} 
+                  style={{ 
+                    padding: '1rem', 
+                    borderRadius: '8px', 
+                    border: `1px solid ${border}`,
+                    background: bg,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.25rem',
+                    transition: 'all 0.3s ease',
+                    boxShadow: state === 'running' ? '0 0 12px rgba(59, 130, 246, 0.15)' : 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, color }}>
+                    <span>{icon}</span>
+                    <span style={{ fontSize: '0.85rem' }}>{phase.label}</span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.25' }}>
+                    {state === 'running' ? 'Active payload execution in progress...' : phase.desc}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Terminal log logs */}
+          {showVerbose && (
+            <div 
+              style={{ 
+                background: 'rgba(17, 24, 39, 0.85)', 
+                backdropFilter: 'blur(8px)',
+                borderRadius: '8px', 
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                padding: '1rem', 
+                fontFamily: 'Consolas, Monaco, monospace', 
+                fontSize: '0.8rem', 
+                maxHeight: '300px', 
+                overflowY: 'auto',
+                boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.5)'
+              }}
+            >
+              {getVerboseLogs(scan).map((log, index) => {
+                let logColor = '#9ca3af'; // default grey
+                if (log.type === 'success') logColor = '#10b981'; // green
+                else if (log.type === 'warning') logColor = '#f59e0b'; // yellow
+                else if (log.type === 'danger') logColor = '#ef4444'; // red
+                else if (log.type === 'info') logColor = '#3b82f6'; // blue
+                
+                return (
+                  <div key={index} style={{ marginBottom: '0.4rem', display: 'flex', gap: '0.75rem', lineHeight: '1.4' }}>
+                    <span style={{ color: '#4b5563', userSelect: 'none' }}>[{log.time}]</span>
+                    <span style={{ color: logColor }}>{log.msg}</span>
+                  </div>
+                );
+              })}
+              {status === 'running' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem' }}>
+                  <span style={{ color: '#4b5563', userSelect: 'none' }}>[{new Date().toLocaleTimeString()}]</span>
+                  <span style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span className="spinner-small" style={{ width: '10px', height: '10px', borderWidth: '1.5px', display: 'inline-block' }}></span>
+                    Awaiting next execution stage...
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Findings details */}
