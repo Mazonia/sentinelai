@@ -24,6 +24,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.prompt import Prompt, Confirm
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
+from rich.markdown import Markdown
 
 from ..modules.arsenal import ToolArsenal, ARSENAL_CATEGORIES
 from ..modules.recon_detector import ReconDetector
@@ -36,6 +37,7 @@ from ..modules.xss_detector import XSSDetector
 from ..modules.cors_ssrf_detector import CORSSSRFDetector
 from ..modules.traversal_detector import PathTraversalDetector
 from ..modules.config_detector import ConfigDetector
+from ..ai.cli_analyzer import CLIAnalyzer
 
 console = Console(force_terminal=True, highlight=False)
 
@@ -54,16 +56,20 @@ class InteractiveDashboard:
     """Main interactive terminal application with persistent session memory"""
 
     session_target: Optional[str] = None
+    last_scan_results: Optional[Dict[str, Any]] = None
     last_report_files: Dict[str, str] = {}
+    analyzer: CLIAnalyzer = CLIAnalyzer()
 
     @classmethod
     def display_banner(cls):
         console.clear()
         console.print(BANNER)
         target_display = f"[bold green]{cls.session_target}[/bold green]" if cls.session_target else "[dim]Not Set[/dim]"
+        ai_badge = "[green]AI Enabled[/green]" if cls.analyzer.has_ai_provider() else "[yellow]Heuristic Rules[/yellow]"
         console.print(Panel.fit(
             f"[bold white]Active Target:[/bold white] {target_display}  "
-            f"[dim]|[/dim]  [cyan]Tip: Enter single-digit numbers ([bold yellow]1-9[/bold yellow]) or shorthand commands ([bold]scan[/bold], [bold]recon[/bold], [bold]fuzz[/bold], [bold]tools[/bold])[/cyan]",
+            f"[dim]|[/dim]  [bold white]AI Engine:[/bold white] {ai_badge}  "
+            f"[dim]|[/dim]  [cyan]Tip: Enter single-digit numbers ([bold yellow]1-10[/bold yellow]) or shorthand commands ([bold]scan[/bold], [bold]recon[/bold], [bold]copilot[/bold], [bold]tools[/bold])[/cyan]",
             border_style="cyan"
         ))
 
@@ -97,12 +103,13 @@ class InteractiveDashboard:
             table.add_row("5", "🧪 Targeted Vulnerability Tester", "Directly audit SQLi, XSS, CORS, SSRF, LFI, and Security Headers")
             table.add_row("6", "🧰 Security Tools Arsenal", "26+ Tools across 10 Categories with 1-Click Auto-Install & Logs")
             table.add_row("7", "📄 View & Open Audit Reports", "Browse, read, and 1-click open Cyberpunk HTML reports in browser")
-            table.add_row("8", "🌐 Start SentinelAI REST API Server", "Launch FastAPI backend on localhost:8000 + Swagger UI docs")
-            table.add_row("9", "🎯 Set / Change Active Target", f"Configure session memory target [{cls.session_target or 'None'}]")
+            table.add_row("8", "🤖 Interactive AI Security Copilot", "Terminal chat, threat reasoning, and code remediation patches")
+            table.add_row("9", "🌐 Start SentinelAI REST API Server", "Launch FastAPI backend on localhost:8000 + Swagger UI docs")
+            table.add_row("10", "🎯 Set / Change Active Target", f"Configure session memory target [{cls.session_target or 'None'}]")
             table.add_row("0", "🚪 Exit SentinelAI", "Quit framework")
 
             console.print(table)
-            choice = Prompt.ask("\n[bold cyan]Select an option [0-9][/bold cyan]", default="1").strip().lower()
+            choice = Prompt.ask("\n[bold cyan]Select an option [0-10][/bold cyan]", default="1").strip().lower()
 
             if choice in ("1", "workflow", "workflows"):
                 cls.run_workflows_flow()
@@ -118,15 +125,17 @@ class InteractiveDashboard:
                 cls.run_arsenal_flow()
             elif choice in ("7", "reports", "report"):
                 cls.run_reports_flow()
-            elif choice in ("8", "api", "server"):
+            elif choice in ("8", "copilot", "ai", "chat"):
+                cls.run_copilot_flow()
+            elif choice in ("9", "api", "server"):
                 cls.run_server_flow()
-            elif choice in ("9", "target"):
+            elif choice in ("10", "target", "t"):
                 cls.set_target_flow()
             elif choice in ("0", "exit", "quit", "q"):
                 console.print("\n[bold green]Stay safe! Exiting SentinelAI...[/bold green]\n")
                 sys.exit(0)
             else:
-                console.print("[red]Invalid selection! Enter a number between 0 and 9.[/red]")
+                console.print("[red]Invalid selection! Enter a number between 0 and 10.[/red]")
                 Prompt.ask("Press Enter to continue")
 
     @classmethod
@@ -182,6 +191,7 @@ class InteractiveDashboard:
                 elif wf_choice == "4":
                     results = asyncio.run(scanner.run_full_scan(target, enable_ai=True, progress_cb=update_cb))
 
+            cls.last_scan_results = results
             cls.display_scan_results(results)
 
             # Auto-save report
@@ -197,6 +207,7 @@ class InteractiveDashboard:
                 console.print("\n[bold yellow]Next Action:[/bold yellow]")
                 console.print("[1] 🌐 Open HTML Report in Default Browser")
                 console.print("[2] 📄 Print Markdown Summary")
+                console.print("[3] 🤖 Consult AI Security Copilot about these results")
                 console.print("[0] 🔙 Return to Workflows Menu")
 
                 act = Prompt.ask("Select action", default="1")
@@ -208,6 +219,8 @@ class InteractiveDashboard:
                         console.print(f"[red]Could not open browser: {e}[/red]")
                 elif act == "2":
                     console.print(Panel(md_p.read_text(encoding="utf-8"), title="Markdown Report", border_style="cyan"))
+                elif act == "3":
+                    cls.run_copilot_flow(scan_context=results)
                 elif act == "0":
                     break
 
@@ -247,6 +260,7 @@ class InteractiveDashboard:
             scanner = StandaloneScanner()
             results = asyncio.run(scanner.run_full_scan(target, enable_ai=enable_ai, progress_cb=update_progress))
 
+        cls.last_scan_results = results
         cls.display_scan_results(results)
 
         out_dir = Path("reports")
@@ -262,9 +276,10 @@ class InteractiveDashboard:
             console.print("\n[bold yellow]What would you like to do next?[/bold yellow]")
             console.print("[1] 🌐 Open Cyberpunk HTML Report in Default Browser")
             console.print("[2] 📄 Print Markdown Report Summary in Terminal")
-            console.print("[3] 📂 Fuzz Hidden Files on this Target")
-            console.print("[4] 🔍 Run Domain Recon on this Target")
-            console.print("[5] 🎯 Scan a Different Target")
+            console.print("[3] 🤖 Consult AI Security Copilot on these findings")
+            console.print("[4] 📂 Fuzz Hidden Files on this Target")
+            console.print("[5] 🔍 Run Domain Recon on this Target")
+            console.print("[6] 🎯 Scan a Different Target")
             console.print("[0] 🔙 Return to Main Menu")
 
             post_choice = Prompt.ask("Select action", default="1")
@@ -277,12 +292,14 @@ class InteractiveDashboard:
             elif post_choice == "2":
                 console.print(Panel(md_p.read_text(encoding="utf-8"), title="Markdown Report", border_style="cyan"))
             elif post_choice == "3":
+                cls.run_copilot_flow(scan_context=results)
+            elif post_choice == "4":
                 cls.run_fuzzer_flow()
                 break
-            elif post_choice == "4":
+            elif post_choice == "5":
                 cls.run_recon_flow()
                 break
-            elif post_choice == "5":
+            elif post_choice == "6":
                 cls.session_target = None
                 cls.run_full_scan_flow()
                 break
@@ -325,6 +342,51 @@ class InteractiveDashboard:
                 str(f.get("parameter", f.get("url", "")))[:40]
             )
         console.print(table)
+
+    @classmethod
+    def run_copilot_flow(cls, scan_context: Optional[Dict[str, Any]] = None):
+        """Interactive terminal chat loop with SentinelAI Copilot"""
+        context = scan_context or cls.last_scan_results or {}
+        target = context.get("target") or cls.session_target or "No active target"
+        findings_count = len(context.get("findings", []))
+        has_llm = cls.analyzer.has_ai_provider()
+
+        console.clear()
+        cls.display_banner()
+        console.print(Panel(
+            f"[bold cyan]🤖 SENTINELAI INTERACTIVE SECURITY COPILOT[/bold cyan]\n"
+            f"[dim]Ask technical questions about discovered vulnerabilities, hardening guidelines, OWASP defenses, or code patches.[/dim]\n\n"
+            f"[bold white]Target Context:[/bold white] [green]{target}[/green]  |  "
+            f"[bold white]Findings Loaded:[/bold white] [yellow]{findings_count}[/yellow]  |  "
+            f"[bold white]Engine Status:[/bold white] {'[green]Live Multi-Provider LLM Active[/green]' if has_llm else '[yellow]Local Heuristic Knowledge Active[/yellow]'}\n\n"
+            f"[dim]Commands: Type your security question, [bold yellow]'clear'[/bold yellow] to reset history, or [bold red]'0'[/bold red] to return to menu.[/dim]",
+            border_style="cyan"
+        ))
+
+        while True:
+            try:
+                user_msg = Prompt.ask("\n[bold green]copilot>[/bold green]").strip()
+            except (KeyboardInterrupt, EOFError):
+                break
+
+            if not user_msg:
+                continue
+            if user_msg in ("0", "exit", "quit", "back"):
+                break
+            if user_msg.lower() == "clear":
+                cls.analyzer.copilot_history.clear()
+                console.print("[dim]Conversation history cleared.[/dim]")
+                continue
+
+            with console.status("[bold cyan]Copilot is analyzing security context...[/bold cyan]"):
+                session_ctx = {
+                    "target": target,
+                    "findings": context.get("findings", []),
+                    "recon": context.get("recon", {})
+                }
+                reply = asyncio.run(cls.analyzer.chat_copilot(user_msg, session_ctx))
+
+            console.print(Panel(Markdown(reply), title="[bold cyan]Copilot Advisory[/bold cyan]", border_style="cyan"))
 
     @classmethod
     def run_recon_flow(cls):
@@ -448,9 +510,8 @@ class InteractiveDashboard:
 
         while True:
             console.print(f"\n[bold cyan]Target:[/bold cyan] {target}")
-            console.print("[bold yellow]Select Vulnerability to Audit:[/bold yellow]")
-            console.print("[1] 💉 SQL Injection (SQLi)")
-            console.print("[2] ⚡ Cross-Site Scripting (XSS)")
+            console.print("[1] 💉 SQL & Command Injection Detection")
+            console.print("[2] ⚡ Cross-Site Scripting (XSS) - Reflected & DOM")
             console.print("[3] 🔄 CORS Misconfigurations & SSRF Input Vectors")
             console.print("[4] 📁 Path Traversal & Local File Inclusion (LFI)")
             console.print("[5] 🛡️ Missing Security Headers & Information Disclosure")
@@ -508,9 +569,9 @@ class InteractiveDashboard:
             cats = list(ARSENAL_CATEGORIES.keys())
             for idx, cat in enumerate(cats, 1):
                 console.print(f"[bold cyan][{idx}][/bold cyan] {cat}")
-            console.print("[bold red][0][/bold red] 🔙 Back to Main Menu")
+            console.print("[bold red][0][/bold red] 🔙 Back to Categories\n")
 
-            choice = Prompt.ask("\nSelect a category [0-10]", default="1")
+            choice = Prompt.ask("Select a category [0-10]", default="1")
             if choice == "0":
                 break
 
@@ -598,6 +659,7 @@ class InteractiveDashboard:
             console.print("[bold yellow]📄 SECURITY AUDIT REPORTS EXPLORER[/bold yellow]\n")
             reports_dir = Path("reports")
             reports_dir.mkdir(exist_ok=True)
+
             files = sorted(list(reports_dir.glob("*.*")), key=lambda p: p.stat().st_mtime, reverse=True)
             valid_files = [f for f in files if f.suffix in [".html", ".md", ".json"]]
 

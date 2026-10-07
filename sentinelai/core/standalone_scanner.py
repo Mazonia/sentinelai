@@ -107,9 +107,20 @@ class StandaloneScanner:
 
         # Step 4: AI Analysis & False-Positive Elimination
         if progress_cb:
-            progress_cb("Running AI Vulnerability Correlation & Remediation...", 92)
+            progress_cb("Running AI Vulnerability Correlation & Remediation...", 90)
         enriched_findings = await self.analyzer.analyze_findings(raw_findings)
         results["findings"] = enriched_findings
+
+        # Step 5: AI Attack Surface Threat Modeling
+        if progress_cb:
+            progress_cb("Synthesizing AI Threat Model & Posture Analysis...", 97)
+        try:
+            threat_model = await self.analyzer.generate_threat_model(
+                target_url, results["recon"], enriched_findings
+            )
+            results["threat_model"] = threat_model
+        except Exception as e:
+            logger.debug(f"Threat modeling failed: {e}")
 
         if progress_cb:
             progress_cb("Scan Complete!", 100)

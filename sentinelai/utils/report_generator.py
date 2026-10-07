@@ -1,6 +1,7 @@
 """
 Automated Security Report Generator
-Produces HTML (Cyberpunk Dark), Markdown, and JSON Reports.
+Produces HTML (Cyberpunk Dark), Markdown, and JSON Reports with
+AI Threat Modeling, CVSS 3.1 Vectors, and Developer Code Patches.
 """
 import json
 import html
@@ -65,6 +66,7 @@ class ReportGenerator:
         date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         findings = data.get("findings", [])
         recon = data.get("recon", {})
+        threat_model = data.get("threat_model", {})
 
         md = [
             "# 🛡️ SentinelAI Security Audit Report",
@@ -74,7 +76,32 @@ class ReportGenerator:
             f"- **Total Findings**: `{len(findings)}`",
             "",
             "---",
-            "",
+            ""
+        ]
+
+        if threat_model:
+            md.extend([
+                "## 🤖 AI Executive Threat Model & Posture Summary",
+                f"- **Overall Risk Rating**: **{threat_model.get('overall_risk_rating', 'MEDIUM')}**",
+                f"- **Executive Summary**: {threat_model.get('executive_summary', 'N/A')}",
+                "",
+                "### Primary Threat Vectors"
+            ])
+            for v in threat_model.get("primary_threat_vectors", []):
+                md.append(f"- {v}")
+            md.extend([
+                "",
+                "### Immediate Remediation Actions (0-24h)"
+            ])
+            for a in threat_model.get("immediate_actions", []):
+                md.append(f"1. {a}")
+            md.extend([
+                "",
+                "---",
+                ""
+            ])
+
+        md.extend([
             "## 🌐 Reconnaissance Summary",
             f"- **Host**: `{recon.get('hostname', 'N/A')}`",
             f"- **IP Addresses**: `{', '.join(recon.get('ip_addresses', [])) or 'N/A'}`",
@@ -86,27 +113,32 @@ class ReportGenerator:
             "",
             "## 🚨 Vulnerability Findings",
             ""
-        ]
+        ])
 
         if not findings:
             md.append("✅ **No vulnerabilities detected during this scan.**")
         else:
-            md.append("| Severity | Vulnerability | Parameter / Path | CVSS |")
-            md.append("| :--- | :--- | :--- | :--- |")
+            md.append("| Severity | Vulnerability | Parameter / Path | CVSS | Vector |")
+            md.append("| :--- | :--- | :--- | :--- | :--- |")
             for f in findings:
                 sev = f.get("severity", "MEDIUM")
                 title = f.get("title", f.get("type", "Issue"))
                 param = f.get("parameter", "N/A")
                 cvss = f.get("cvss_score", "N/A")
-                md.append(f"| **{sev}** | {title} | `{param}` | {cvss} |")
+                vector = f.get("cvss_vector", "N/A")
+                md.append(f"| **{sev}** | {title} | `{param}` | {cvss} | `{vector}` |")
 
             md.append("")
-            md.append("### Detailed Remediation Guidance")
+            md.append("### Detailed Remediation Guidance & Code Patches")
             for idx, f in enumerate(findings, 1):
                 md.append(f"#### {idx}. {f.get('title', f.get('type'))} ({f.get('severity')})")
                 md.append(f"- **URL**: `{f.get('url')}`")
                 md.append(f"- **Description**: {f.get('description', 'N/A')}")
-                md.append(f"- **Remediation**:\n```\n{f.get('remediation', 'N/A')}\n```")
+                rem = f.get('remediation', 'N/A')
+                md.append(f"- **Remediation**:\n```\n{rem}\n```")
+                if f.get("code_patch"):
+                    cp = f.get('code_patch')
+                    md.append(f"- **Developer Code Patch**:\n```\n{cp}\n```")
                 md.append("")
 
         full_md = "\n".join(md)
@@ -118,7 +150,7 @@ class ReportGenerator:
         return full_md
 
     def generate_html(self_or_data, arg1=None, arg2=None) -> Any:
-        """Export findings to stunning Dark Cyberpunk HTML report (supports instance and static calls)"""
+        """Export findings to stunning Dark Cyberpunk HTML report with AI Threat Model"""
         if isinstance(self_or_data, ReportGenerator):
             data = arg1 if isinstance(arg1, dict) else self_or_data.data
             filepath = arg2 if isinstance(arg1, dict) else arg1
@@ -130,11 +162,41 @@ class ReportGenerator:
         date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         findings = data.get("findings", [])
         recon = data.get("recon", {})
+        threat_model = data.get("threat_model", {})
 
         crit_count = sum(1 for f in findings if str(f.get("severity")).upper() == "CRITICAL")
         high_count = sum(1 for f in findings if str(f.get("severity")).upper() == "HIGH")
         med_count = sum(1 for f in findings if str(f.get("severity")).upper() == "MEDIUM")
         low_count = sum(1 for f in findings if str(f.get("severity")).upper() in ["LOW", "INFO"])
+
+        # Threat Model HTML Card
+        threat_html = ""
+        if threat_model:
+            risk = threat_model.get("overall_risk_rating", "MEDIUM")
+            risk_color = "#ef4444" if risk == "CRITICAL" else ("#f97316" if risk == "HIGH" else "#eab308")
+            exec_summary = html.escape(threat_model.get("executive_summary", ""))
+            vectors_li = "".join(f"<li style='margin-bottom:0.3rem;'>{html.escape(v)}</li>" for v in threat_model.get("primary_threat_vectors", []))
+            actions_li = "".join(f"<li style='margin-bottom:0.3rem;'>{html.escape(a)}</li>" for a in threat_model.get("immediate_actions", []))
+
+            threat_html = f"""
+            <div style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(30, 41, 59, 0.85)); border: 1px solid #38bdf8; border-radius: 14px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 0 25px rgba(56, 189, 248, 0.15);">
+                <div style="display:flex; align-items:center; gap: 1rem; margin-bottom: 1rem;">
+                    <span style="font-size: 1.5rem;">🤖</span>
+                    <h2 style="margin: 0; font-size: 1.3rem; color: #f8fafc;">AI Executive Threat Model & Posture Analysis</h2>
+                    <span style="margin-left:auto; background:{risk_color}; color:#000; font-weight:800; font-size:0.75rem; padding:0.3rem 0.8rem; border-radius:9999px;">RISK: {risk}</span>
+                </div>
+                <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.2rem;">{exec_summary}</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem;">
+                    <div style="background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: 8px; border: 1px solid #334155;">
+                        <span style="color: #f87171; font-weight: 700; display: block; margin-bottom: 0.5rem;">⚡ Primary Threat Vectors:</span>
+                        <ul style="margin: 0; padding-left: 1.2rem; color: #94a3b8; font-size: 0.88rem;">{vectors_li}</ul>
+                    </div>
+                    <div style="background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: 8px; border: 1px solid #334155;">
+                        <span style="color: #34d399; font-weight: 700; display: block; margin-bottom: 0.5rem;">🛡️ Immediate Actions (0-24h):</span>
+                        <ol style="margin: 0; padding-left: 1.2rem; color: #94a3b8; font-size: 0.88rem;">{actions_li}</ol>
+                    </div>
+                </div>
+            </div>"""
 
         finding_cards = []
         for idx, f in enumerate(findings, 1):
@@ -145,13 +207,28 @@ class ReportGenerator:
             param = html.escape(str(f.get("parameter", "N/A")))
             remediation = html.escape(str(f.get("remediation", "Review configuration and sanitize input.")))
             cvss = f.get("cvss_score", "N/A")
+            vector = html.escape(str(f.get("cvss_vector", "")))
+            code_patch = html.escape(str(f.get("code_patch", "")))
+
+            patch_html = ""
+            if code_patch:
+                patch_html = f"""
+                <div style="background: #0f172a; padding: 1rem; border-radius: 8px; border: 1px solid #1e293b; margin-top: 0.8rem;">
+                    <span style="color: #38bdf8; font-weight: 600; display: block; margin-bottom: 0.3rem;">⚡ Developer Code Patch:</span>
+                    <pre style="margin: 0; color: #f1f5f9; font-size: 0.85rem; white-space: pre-wrap; font-family: 'JetBrains Mono', monospace;">{code_patch}</pre>
+                </div>"""
+
+            vector_badge = f"<span style='background: #1e293b; color: #38bdf8; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: monospace;'>{vector}</span>" if vector else ""
 
             card = f"""
             <div class="card" style="border-left: 5px solid {color}; margin-bottom: 1.2rem; background: #111827; border-radius: 12px; overflow: hidden; border: 1px solid #374151;">
-                <div style="padding: 1rem 1.5rem; background: rgba(255,255,255,0.02); border-bottom: 1px solid #374151; display: flex; align-items: center; gap: 1rem;">
+                <div style="padding: 1rem 1.5rem; background: rgba(255,255,255,0.02); border-bottom: 1px solid #374151; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
                     <span style="background: {color}; color: #000; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 9999px;">{sev}</span>
                     <span style="color: #f3f4f6; font-size: 1.1rem; font-weight: 600;">{title}</span>
-                    <span style="margin-left: auto; color: #9ca3af; font-size: 0.85rem;">CVSS: <strong style="color: {color};">{cvss}</strong></span>
+                    <div style="margin-left: auto; display: flex; align-items: center; gap: 0.8rem;">
+                        {vector_badge}
+                        <span style="color: #9ca3af; font-size: 0.85rem;">CVSS: <strong style="color: {color}; font-size: 1rem;">{cvss}</strong></span>
+                    </div>
                 </div>
                 <div style="padding: 1.2rem 1.5rem; color: #d1d5db; font-size: 0.95rem;">
                     <p style="margin: 0 0 0.5rem 0;"><strong>Vulnerable URL:</strong> <a href="{url}" target="_blank" style="color: #38bdf8; word-break: break-all;">{url}</a></p>
@@ -160,6 +237,7 @@ class ReportGenerator:
                         <span style="color: #10b981; font-weight: 600; display: block; margin-bottom: 0.3rem;">🛡️ Remediation Advice:</span>
                         <pre style="margin: 0; color: #e5e7eb; font-size: 0.85rem; white-space: pre-wrap; font-family: monospace;">{remediation}</pre>
                     </div>
+                    {patch_html}
                 </div>
             </div>"""
             finding_cards.append(card)
@@ -274,6 +352,8 @@ class ReportGenerator:
                 </div>
             </div>
         </div>
+
+        {threat_html}
 
         <div style="margin-bottom: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem;">
             <h2 style="margin: 0 0 1rem 0; font-size: 1.3rem; color: #f8fafc;">🌐 Reconnaissance & Fingerprint Intelligence</h2>

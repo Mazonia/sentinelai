@@ -32,6 +32,7 @@ def print_help():
 Usage:
     sentinelai                     Launch interactive numbered terminal console (Recommended)
     sentinelai scan <target_url>   Run full automated vulnerability scan on target
+    sentinelai copilot             Launch interactive AI Security Copilot terminal chat
     sentinelai recon <domain>      Perform OSINT & Reconnaissance on domain
     sentinelai fuzz <target_url>   Fuzz sensitive files & hidden paths on target
     sentinelai tools               Open the curated security tools arsenal
@@ -50,6 +51,8 @@ def main():
 
     if cmd in ("--help", "-h", "help"):
         print_help()
+    elif cmd in ("copilot", "ai", "chat"):
+        InteractiveDashboard.run_copilot_flow()
     elif cmd == "scan":
         if len(sys.argv) < 3:
             InteractiveDashboard.run_full_scan_flow()

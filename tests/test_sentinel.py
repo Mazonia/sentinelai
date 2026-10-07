@@ -67,7 +67,8 @@ def test_report_generator():
                 "parameter": "q",
                 "evidence": "SQL syntax error near '",
                 "description": "SQL Injection in parameter q",
-                "remediation": "Use parameterized queries"
+                "remediation": "Use parameterized queries",
+                "code_patch": "cursor.execute('SELECT * FROM users WHERE q = %s', (q,))"
             },
             {
                 "type": "missing_security_headers",
@@ -77,9 +78,16 @@ def test_report_generator():
                 "parameter": "HSTS",
                 "evidence": "Strict-Transport-Security header missing",
                 "description": "Missing HSTS",
-                "remediation": "Enable HSTS in web server"
+                "remediation": "Enable HSTS in web server",
+                "code_patch": "add_header Strict-Transport-Security 'max-age=31536000;' always;"
             }
-        ]
+        ],
+        "threat_model": {
+            "overall_risk_rating": "CRITICAL",
+            "executive_summary": "High risk detected due to unparameterized queries.",
+            "primary_threat_vectors": ["SQL injection on query parameter"],
+            "immediate_actions": ["Migrate to parameterized statements"]
+        }
     }
 
     # Test instance methods
@@ -88,10 +96,12 @@ def test_report_generator():
     assert "https://test-target.local" in html_content
     assert "CRITICAL" in html_content
     assert "sql_injection" in html_content
+    assert "AI Executive Threat Model" in html_content
 
     md_content = reporter.generate_markdown()
     assert "https://test-target.local" in md_content
     assert "9.8" in md_content
+    assert "Developer Code Patch" in md_content
 
     json_content = reporter.generate_json()
     assert "test-target.local" in json_content
@@ -112,6 +122,64 @@ def test_cli_analyzer_baseline():
     baseline = analyzer._heuristic_baseline(mock_finding)
     assert baseline["cvss_score"] >= 8.0
     assert "parameterized" in baseline["remediation"].lower()
+    assert "code_patch" in baseline
+
+
+@pytest.mark.asyncio
+async def test_cli_analyzer_threat_model():
+    """Verify threat modeling generates risk rating, executive summary, and actionable roadmap"""
+    analyzer = CLIAnalyzer()
+    mock_recon = {
+        "hostname": "vuln-target.local",
+        "ip_addresses": ["192.168.1.100"],
+        "waf": None,
+        "open_ports": [{"port": 80, "service": "HTTP"}, {"port": 3306, "service": "MySQL"}],
+        "technologies": ["PHP", "Apache", "MySQL"]
+    }
+    mock_findings = [
+        {"type": "sql_injection", "severity": "CRITICAL", "parameter": "id", "url": "https://vuln-target.local/item"}
+    ]
+    threat_model = await analyzer.generate_threat_model("https://vuln-target.local", mock_recon, mock_findings)
+    assert threat_model["overall_risk_rating"] in ["CRITICAL", "HIGH", "MEDIUM"]
+    assert "executive_summary" in threat_model
+    assert len(threat_model["primary_threat_vectors"]) >= 1
+    assert len(threat_model["immediate_actions"]) >= 1
+    assert len(threat_model["strategic_roadmap"]) >= 1
+
+
+@pytest.mark.asyncio
+async def test_cli_analyzer_copilot():
+    """Verify Interactive Copilot delivers security advice and code patterns"""
+    analyzer = CLIAnalyzer()
+    session_ctx = {
+        "target": "https://test.local",
+        "findings": [{"type": "sql_injection", "severity": "CRITICAL"}],
+        "recon": {"waf": "Cloudflare", "open_ports": [{"port": 443}]}
+    }
+    # Test SQL Injection advisory
+    reply_sql = await analyzer.chat_copilot("How do I fix SQL injection in Python?", session_ctx)
+    assert "parameterized" in reply_sql.lower() or "sql" in reply_sql.lower()
+
+    # Test Security Headers advisory
+    reply_headers = await analyzer.chat_copilot("What are recommended security headers?")
+    assert "strict-transport-security" in reply_headers.lower() or "header" in reply_headers.lower()
+
+
+@pytest.mark.asyncio
+async def test_cli_analyzer_enrichment():
+    """Verify analyze_findings enriches findings with CVSS 3.1 vectors and code patches"""
+    analyzer = CLIAnalyzer()
+    raw_findings = [
+        {"type": "sql_injection", "severity": "CRITICAL", "parameter": "user_id"},
+        {"type": "path_traversal", "severity": "HIGH", "parameter": "file"}
+    ]
+    enriched = await analyzer.analyze_findings(raw_findings)
+    assert len(enriched) == 2
+    for item in enriched:
+        assert "cvss_score" in item
+        assert "cvss_vector" in item
+        assert "code_patch" in item
+        assert "CVSS:3.1" in item["cvss_vector"]
 
 
 @pytest.mark.asyncio
