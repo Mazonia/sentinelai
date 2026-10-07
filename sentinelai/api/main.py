@@ -34,7 +34,7 @@ class ScanRequest(BaseModel):
     max_pages: int = Field(100, ge=1, le=1000)
     concurrency: int = Field(10, ge=1, le=50)
     modules: List[str] = Field(default=["injection", "xss", "auth", "config", "api"])
-    ai_analysis: bool = Field(True)
+    ai_analysis: Optional[bool] = Field(True)
     payload_intensity: str = Field("medium", pattern="^(low|medium|high)$")
     
     class Config:
@@ -147,7 +147,7 @@ async def start_scan(
         max_pages=request.max_pages,
         concurrency=request.concurrency,
         included_modules=request.modules,
-        ai_analysis=request.ai_analysis,
+        ai_analysis=True,
         payload_intensity=request.payload_intensity
     )
     

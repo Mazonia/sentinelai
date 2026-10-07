@@ -102,12 +102,19 @@ class WebCrawler:
                     continue
                 
                 self.visited.add(normalized_url)
+                logger.info(f"Crawling URL: {url} (depth: {depth})")
                 
                 # Fetch and parse
                 response = await self.http_client.get(url)
-                if not response or response.status != 200:
+                if not response:
+                    logger.info(f"Failed to fetch {url} (connection timeout or SSL error)")
                     continue
                 
+                if response.status != 200:
+                    logger.info(f"Failed to fetch {url} (HTTP status code {response.status})")
+                    continue
+                
+                logger.info(f"Successfully fetched {url} (status: 200)")
                 content_type = response.headers.get('Content-Type', '')
                 
                 if 'text/html' in content_type:
@@ -118,7 +125,7 @@ class WebCrawler:
                     await self._parse_javascript(url, response)
                 
             except Exception as e:
-                logger.debug(f"Crawler error for {url}: {e}")
+                logger.info(f"Crawler error for {url}: {e}")
             finally:
                 queue.task_done()
     

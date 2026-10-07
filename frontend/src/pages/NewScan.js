@@ -194,23 +194,7 @@ function NewScan({ addToast }) {
             </div>
           </div>
 
-          {/* AI Analysis Toggle */}
-          <div className="form-group switch-container" style={{ marginTop: '1.5rem' }}>
-            <div>
-              <span className="form-label" style={{ marginBottom: '0.2rem' }}>AI False Positive Reduction & Remediation</span>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Uses AI to grade finding confidence and generate custom mitigation advice.
-              </p>
-            </div>
-            <label className="switch">
-              <input
-                type="checkbox"
-                checked={aiAnalysis}
-                onChange={(e) => setAiAnalysis(e.target.checked)}
-              />
-              <span className="slider"></span>
-            </label>
-          </div>
+
 
           {/* Submit */}
           <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>

@@ -196,13 +196,14 @@ class SecurityScanner:
     async def _scanning_phase(self):
         """Run all enabled vulnerability detection modules"""
         urls = list(self.discovered_urls)
+        logger.info(f"Starting scanning phase for {len(urls)} discovered URLs across {len(self.modules)} active modules")
         
         for module_name, module in self.modules.items():
             if self.status.status == "cancelled":
                 logger.info("Scan cancelled, aborting scanning phase")
                 break
 
-            logger.info(f"Running {module_name} detection module")
+            logger.info(f"Auditing target endpoints with [{module_name.upper()}] module...")
             self.status.current_module = module_name
             self._notify_progress()
             
@@ -212,6 +213,7 @@ class SecurityScanner:
                     intensity=self.config.payload_intensity,
                     authentication=self.config.authentication
                 )
+                logger.info(f"Finished [{module_name.upper()}] module check: found {len(findings)} potential issues")
                 
                 from sqlalchemy import inspect
                 from ..models.database import Severity
@@ -254,7 +256,8 @@ class SecurityScanner:
 
     async def _exploitation_phase(self):
         """Attempt safe exploitation of confirmed vulnerabilities"""
-        logger.info("Starting exploitation phase")
+        high_conf = [v for v in self.vulnerabilities if (v.confidence if v.confidence is not None else 0.5) >= 0.7 and not v.false_positive]
+        logger.info(f"Starting safe exploitation phase: auditing {len(high_conf)} high-confidence findings")
         self.status.current_module = "exploitation"
         self._notify_progress()
         
@@ -268,6 +271,7 @@ class SecurityScanner:
                 continue
             
             try:
+                logger.info(f"Attempting benign exploit verification for {vuln.type} on parameter '{vuln.parameter}'")
                 if vuln.type == 'sql_injection':
                     result = await self.exploitation.safe_exploit_sql_injection(
                         vuln.url,
@@ -277,6 +281,9 @@ class SecurityScanner:
                     if result.get('success'):
                         vuln.exploitation_confirmed = True
                         vuln.exploitation_proof = result.get('proof')
+                        logger.info(f"SUCCESS: Safe exploit CONFIRMED SQL Injection on {vuln.url}!")
+                    else:
+                        logger.info(f"Exploit verification did not trigger for SQL Injection on {vuln.url}")
                 
                 elif vuln.type == 'xss':
                     result = await self.exploitation.safe_exploit_xss(
@@ -285,6 +292,9 @@ class SecurityScanner:
                     )
                     if result.get('success'):
                         vuln.exploitation_confirmed = True
+                        logger.info(f"SUCCESS: Safe exploit CONFIRMED XSS reflection on {vuln.url}!")
+                    else:
+                        logger.info(f"Exploit verification did not trigger for XSS on {vuln.url}")
                 
                 elif vuln.type == 'privilege_escalation':
                     # Would need session info here
@@ -295,7 +305,7 @@ class SecurityScanner:
                 
     async def _ai_analysis_phase(self):
         """Use AI to analyze and prioritize findings"""
-        logger.info("Starting AI analysis phase")
+        logger.info(f"Starting AI Analysis phase: sending {len(self.vulnerabilities)} findings to Llama-3.3 for classification and remediations")
         self.status.current_module = "ai_analysis"
         self._notify_progress()
         
