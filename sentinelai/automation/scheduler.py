@@ -1,8 +1,10 @@
 """
 Celery Task Scheduler and Configuration for SentinelAI
+Supports both Linux and native Windows execution.
 """
 from celery import Celery
 import os
+import sys
 import asyncio
 import logging
 
@@ -25,6 +27,12 @@ celery_app.conf.update(
     timezone='UTC',
     enable_utc=True,
 )
+
+# On Windows, default 'prefork' pool is unsupported by OS fork(). Enforce 'solo' pool.
+if sys.platform == 'win32':
+    celery_app.conf.update(
+        worker_pool='solo',
+    )
 
 # Dummy ScanScheduler class to satisfy api/main.py imports
 class ScanScheduler:

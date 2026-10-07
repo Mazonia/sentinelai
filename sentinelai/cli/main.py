@@ -6,8 +6,17 @@ import sys
 import asyncio
 from pathlib import Path
 
-# Fix Windows console UTF-8 output
+# Initialize Windows console UTF-8 & Virtual Terminal Processing (ANSI colors)
 if sys.platform == "win32":
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        h_out = kernel32.GetStdHandle(-11)
+        mode = ctypes.c_ulong()
+        if kernel32.GetConsoleMode(h_out, ctypes.byref(mode)):
+            kernel32.SetConsoleMode(h_out, mode.value | 0x0004)
+    except Exception:
+        pass
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")

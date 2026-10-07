@@ -235,3 +235,23 @@ def test_scanner_specialized_workflows():
     assert hasattr(scanner, "run_content_discovery")
     assert hasattr(scanner, "run_api_discovery")
     assert hasattr(scanner, "run_full_scan")
+
+
+def test_windows_cross_platform_arsenal():
+    """Verify arsenal tools include Windows-specific guides and smart executable resolution"""
+    tools = ToolArsenal.get_all_tools()
+    assert len(tools) >= 25
+    for t in tools:
+        assert "install_win" in t, f"Tool {t['name']} missing install_win"
+        assert "install_linux" in t, f"Tool {t['name']} missing install_linux"
+
+    # Test smart executable resolver finds python
+    python_exe = ToolArsenal.find_tool_executable("python")
+    assert python_exe is not None
+
+
+def test_celery_windows_pool_config():
+    """Verify Celery configures solo pool on Windows to avoid fork errors"""
+    from sentinelai.automation.scheduler import celery_app
+    if sys.platform == "win32":
+        assert celery_app.conf.worker_pool == "solo"

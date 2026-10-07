@@ -14,6 +14,15 @@ from typing import Optional, Dict, Any, List
 
 if sys.platform == "win32":
     try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        h_out = kernel32.GetStdHandle(-11)
+        mode = ctypes.c_ulong()
+        if kernel32.GetConsoleMode(h_out, ctypes.byref(mode)):
+            kernel32.SetConsoleMode(h_out, mode.value | 0x0004)
+    except Exception:
+        pass
+    try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
@@ -66,10 +75,12 @@ class InteractiveDashboard:
         console.print(BANNER)
         target_display = f"[bold green]{cls.session_target}[/bold green]" if cls.session_target else "[dim]Not Set[/dim]"
         ai_badge = "[green]AI Enabled[/green]" if cls.analyzer.has_ai_provider() else "[yellow]Heuristic Rules[/yellow]"
+        os_badge = "[cyan]Windows Native[/cyan]" if sys.platform == "win32" else "[green]Linux Native[/green]"
         console.print(Panel.fit(
             f"[bold white]Active Target:[/bold white] {target_display}  "
+            f"[dim]|[/dim]  [bold white]OS:[/bold white] {os_badge}  "
             f"[dim]|[/dim]  [bold white]AI Engine:[/bold white] {ai_badge}  "
-            f"[dim]|[/dim]  [cyan]Tip: Enter single-digit numbers ([bold yellow]1-10[/bold yellow]) or shorthand commands ([bold]scan[/bold], [bold]recon[/bold], [bold]copilot[/bold], [bold]tools[/bold])[/cyan]",
+            f"[dim]|[/dim]  [cyan]Tip: Enter numbers ([bold yellow]1-10[/bold yellow]) or commands ([bold]scan[/bold], [bold]recon[/bold], [bold]copilot[/bold], [bold]tools[/bold])[/cyan]",
             border_style="cyan"
         ))
 
@@ -588,8 +599,10 @@ class InteractiveDashboard:
                     table.add_column("Status", style="bold")
                     table.add_column("Description", style="dim")
 
+                    is_win = sys.platform == "win32"
                     for t_idx, t in enumerate(tools, 1):
-                        is_inst = ToolArsenal.get_tool_status(t["cmd"])
+                        exe_path = ToolArsenal.find_tool_executable(t["cmd"])
+                        is_inst = exe_path is not None
                         st = "[green]Installed[/green]" if is_inst else "[red]Not Found[/red]"
                         table.add_row(str(t_idx), t["name"], st, t["desc"])
 
@@ -602,30 +615,53 @@ class InteractiveDashboard:
 
                     if t_choice.isdigit() and 1 <= int(t_choice) <= len(tools):
                         selected = tools[int(t_choice) - 1]
-                        is_installed = ToolArsenal.get_tool_status(selected["cmd"])
+                        exe_path = ToolArsenal.find_tool_executable(selected["cmd"])
+                        is_installed = exe_path is not None
+                        install_guide = selected.get("install_win" if is_win else "install_linux", selected.get("install"))
+
+                        status_display = f"[green]Installed[/green] [dim]({exe_path})[/dim]" if is_installed else "[red]Not installed[/red]"
 
                         console.print(Panel(
                             f"[bold]Tool:[/bold] {selected['name']}\n"
                             f"[bold]Description:[/bold] {selected['desc']}\n"
-                            f"[bold]Status:[/bold] {'[green]Installed in PATH[/green]' if is_installed else '[red]Not installed[/red]'}\n"
+                            f"[bold]Status:[/bold] {status_display}\n"
+                            f"[bold]Platform Guide ({'Windows' if is_win else 'Linux'}):[/bold] [green]{install_guide}[/green]\n"
                             f"[bold]Quick Preset:[/bold] [yellow]{selected.get('preset_quick', selected['preset'])}[/yellow]\n"
-                            f"[bold]Deep Preset:[/bold] [yellow]{selected.get('preset_deep', selected['preset'])}[/yellow]\n"
-                            f"[bold]Install Guide:[/bold] [green]{selected['install']}[/green]",
+                            f"[bold]Deep Preset:[/bold] [yellow]{selected.get('preset_deep', selected['preset'])}[/yellow]",
                             title=f"Tool: {selected['name']}",
                             border_style="cyan"
                         ))
 
                         if not is_installed:
-                            console.print("[bold yellow]Tool Actions:[/bold yellow]")
+                            console.print("[bold yellow]Available Auto-Install Options:[/bold yellow]")
+                            act_idx = 1
+                            action_map = {}
+
                             if selected.get("pip_pkg"):
-                                console.print("[1] ⚡ 1-Click Auto-Install (pip install into environment)")
-                                console.print("[0] 🔙 Back")
-                                act = Prompt.ask("Select action", default="1")
-                                if act == "1":
-                                    success = ToolArsenal.install_tool(selected)
-                                    Prompt.ask("\nPress Enter to continue")
-                            else:
-                                console.print(f"[bold yellow]Install command:[/bold yellow] {selected['install']}")
+                                console.print(f"[{act_idx}] ⚡ 1-Click Pip Install into Environment ({selected['pip_pkg']})")
+                                action_map[str(act_idx)] = "pip"
+                                act_idx += 1
+
+                            import shutil as _shutil
+                            if is_win and selected.get("winget_id") and _shutil.which("winget"):
+                                console.print(f"[{act_idx}] 🪟 1-Click Install via Windows Package Manager (winget: {selected['winget_id']})")
+                                action_map[str(act_idx)] = "winget"
+                                act_idx += 1
+
+                            if is_win and selected.get("choco_pkg") and _shutil.which("choco"):
+                                console.print(f"[{act_idx}] 🍫 1-Click Install via Chocolatey (choco: {selected['choco_pkg']})")
+                                action_map[str(act_idx)] = "choco"
+                                act_idx += 1
+
+                            console.print("[0] 🔙 Back")
+                            default_choice = "1" if action_map else "0"
+                            act = Prompt.ask("Select action", default=default_choice)
+
+                            if act in action_map:
+                                ToolArsenal.install_tool(selected, method=action_map[act])
+                                Prompt.ask("\nPress Enter to continue")
+                            elif act != "0":
+                                console.print(f"[bold yellow]Manual Command:[/bold yellow] {install_guide}")
                                 Prompt.ask("\nPress Enter to continue")
                         else:
                             console.print("[bold yellow]Execution Mode:[/bold yellow]")

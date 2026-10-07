@@ -1,5 +1,6 @@
 """
 Setup configuration for SentinelAI
+100% Cross-Platform (Windows, Linux, macOS)
 """
 from setuptools import setup, find_packages
 from pathlib import Path
@@ -9,7 +10,7 @@ readme = (this_dir / "README.md").read_text(encoding="utf-8") if (this_dir / "RE
 
 setup(
     name="sentinelai",
-    version="2.1.0",
+    version="2.4.0",
     description="AI-Powered Offensive Security, Vulnerability Assessment & Penetration Testing Arsenal",
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -41,6 +42,9 @@ setup(
         "Intended Audience :: Information Technology",
         "Topic :: Security",
         "License :: OSI Approved :: MIT License",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: MacOS",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",

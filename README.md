@@ -2,11 +2,11 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-0078D6?style=for-the-badge&logo=windows" alt="Cross-Platform">
   <img src="https://img.shields.io/badge/Security-AppSec%20%7C%20DAST%20%7C%20Threat%20Modeling-red?style=for-the-badge&logo=shield" alt="AppSec">
   <img src="https://img.shields.io/badge/AI_Engine-Groq%20%7C%20OpenAI%20%7C%20Venice%20%7C%20DeepSeek-purple?style=for-the-badge&logo=openai" alt="AI Engine">
   <img src="https://img.shields.io/badge/Copilot-Interactive%20Terminal%20Advisor-cyan?style=for-the-badge&logo=terminal" alt="Copilot">
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License">
-  <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge" alt="PRs Welcome">
 </p>
 
 > **SentinelAI** is an advanced, all-in-one AI-powered offensive security framework, automated vulnerability scanner, and penetration testing arsenal. Combining instant reconnaissance, deep web vulnerability audits, automated threat modeling, CVSS 3.1 calculations, copy-paste developer remediation patches, an interactive AI Security Copilot, and a curated multi-tool launchpad into a seamless terminal and web experience.
@@ -26,6 +26,14 @@
 ---
 
 ## 🚀 Key Highlights & Capabilities
+
+### 🪟 100% Native Windows & Linux Cross-Platform Architecture
+SentinelAI is fully engineered to run seamlessly across **Windows 10/11**, **Linux**, and **macOS**:
+- **Windows Package Manager (`winget`) & Chocolatey (`choco`)**: 1-click install industry-standard external tools directly from the terminal console.
+- **Smart Path Resolver**: Automatically locates tools in `C:\Program Files`, `C:\Program Files (x86)`, WinGet Links, Chocolatey bin, Scoop shims, and virtual environment `Scripts/`.
+- **Zero-Setup SQLite Mode**: Embedded database fallback ensures scans and API servers run natively on Windows without requiring Docker, PostgreSQL, or WSL.
+- **Windows Console ANSI & UTF-8**: Automatic Virtual Terminal Processing (VT100) initialization guarantees crystal-clear cyberpunk colors, bold borders, and emoji icons in Windows Command Prompt (CMD), PowerShell, and Windows Terminal.
+- **Windows Celery Compatibility**: Automatically activates the `solo` pool on Windows to eliminate Linux `fork()` compatibility errors.
 
 ### 1. 🤖 Next-Gen AI Security Engine & Threat Modeling
 - **Multi-Provider LLM Integration**: Connects to **Groq (`llama-3.3-70b-versatile`)**, **OpenAI (`gpt-4o-mini`)**, **Venice AI (`llama-3.3-70b`)**, and **DeepSeek (`deepseek-chat`)** with automatic multi-provider failover.
@@ -83,13 +91,37 @@ Instant host environment detection, 1-click auto-installation, live execution st
 
 ## ⚡ Quick Start
 
-### 1. Clone & Setup
+### 🪟 Windows Quick Start (1-Click Automated Setup)
+
+#### Option A: 1-Click Batch Installer
+Simply double-click `install_windows.bat` (or run in Command Prompt):
+```cmd
+git clone https://github.com/Mazonia/sentinelai.git
+cd sentinelai
+install_windows.bat
+```
+This automatically sets up Python virtual environments, installs requirements, registers global `sentinelai` commands, and launches the console.
+
+#### Option B: PowerShell Setup
+```powershell
+git clone https://github.com/Mazonia/sentinelai.git
+cd sentinelai
+.\install_windows.ps1
+```
+
+Once installed, simply type `sentinelai` or `.\sentinelai.ps1` in any terminal!
+
+---
+
+### 🐧 Linux & macOS Quick Start
 ```bash
 git clone https://github.com/Mazonia/sentinelai.git
 cd sentinelai
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+pip install -e .
+sentinelai
 ```
 
 ### 2. Interactive Numbered Console (Zero Typing Required)
