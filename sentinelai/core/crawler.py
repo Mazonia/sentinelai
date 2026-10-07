@@ -64,7 +64,10 @@ class WebCrawler:
             )
             tasks.append(task)
         
-        await queue.join()
+        try:
+            await asyncio.wait_for(queue.join(), timeout=25.0)
+        except (asyncio.TimeoutError, Exception):
+            pass
         
         # Cancel worker tasks
         for task in tasks:

@@ -1,0 +1,6 @@
+# Ensure shell scripts always have LF line endings
+*.sh text eol=lf
+
+# Ensure Windows scripts have CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf

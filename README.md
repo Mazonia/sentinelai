@@ -114,6 +114,17 @@ Once installed, simply type `sentinelai` or `.\sentinelai.ps1` in any terminal!
 ---
 
 ### 🐧 Linux & macOS Quick Start
+
+#### Option A: 1-Click Automated Script
+```bash
+git clone https://github.com/Mazonia/sentinelai.git
+cd sentinelai
+chmod +x install_linux.sh sentinel.sh
+./install_linux.sh
+```
+This automatically sets up the Python virtual environment, installs dependencies, registers global `sentinelai` commands in `~/.local/bin`, and launches the framework!
+
+#### Option B: Manual Setup
 ```bash
 git clone https://github.com/Mazonia/sentinelai.git
 cd sentinelai
@@ -123,6 +134,8 @@ pip install -r requirements.txt
 pip install -e .
 sentinelai
 ```
+
+> **Headless Server Support**: On headless Linux VPS/cloud servers (without a desktop GUI/browser), SentinelAI automatically detects the environment and provides direct absolute file paths for HTML/Markdown reports without throwing `xdg-open` browser launch errors.
 
 ### 2. Interactive Numbered Console (Zero Typing Required)
 Simply type `sentinelai` (or `sentinel`) — no python prefixes or complex syntax needed:

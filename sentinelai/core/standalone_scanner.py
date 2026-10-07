@@ -159,6 +159,16 @@ class StandaloneScanner:
             logger.debug(f"Config scan error: {e}")
 
         if progress_cb:
+            progress_cb("Enriching findings and synthesizing AI threat model...", 85)
+        results["findings"] = await self.analyzer.analyze_findings(results["findings"])
+        try:
+            results["threat_model"] = await self.analyzer.generate_threat_model(
+                target_url, results["recon"], results["findings"]
+            )
+        except Exception as e:
+            logger.debug(f"Threat modeling error: {e}")
+
+        if progress_cb:
             progress_cb("Perimeter Assessment Complete!", 100)
         await self.http_client.close()
         return results
@@ -199,6 +209,17 @@ class StandaloneScanner:
         except Exception as e:
             logger.debug(f"Traversal error: {e}")
 
+        results["recon"] = {}
+        if progress_cb:
+            progress_cb("Enriching findings and synthesizing AI threat model...", 85)
+        results["findings"] = await self.analyzer.analyze_findings(results["findings"])
+        try:
+            results["threat_model"] = await self.analyzer.generate_threat_model(
+                target_url, results["recon"], results["findings"]
+            )
+        except Exception as e:
+            logger.debug(f"Threat modeling error: {e}")
+
         if progress_cb:
             progress_cb("Content Discovery Complete!", 100)
         await self.http_client.close()
@@ -238,6 +259,17 @@ class StandaloneScanner:
                 results["findings"].append(f)
         except Exception as e:
             logger.debug(f"CORS/SSRF error: {e}")
+
+        results["recon"] = {}
+        if progress_cb:
+            progress_cb("Enriching findings and synthesizing AI threat model...", 85)
+        results["findings"] = await self.analyzer.analyze_findings(results["findings"])
+        try:
+            results["threat_model"] = await self.analyzer.generate_threat_model(
+                target_url, results["recon"], results["findings"]
+            )
+        except Exception as e:
+            logger.debug(f"Threat modeling error: {e}")
 
         if progress_cb:
             progress_cb("API Surface Audit Complete!", 100)

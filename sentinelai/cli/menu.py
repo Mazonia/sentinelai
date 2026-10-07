@@ -725,14 +725,22 @@ class InteractiveDashboard:
             elif choice.lower() == "a":
                 html_files = [f for f in valid_files if f.suffix == ".html"]
                 if html_files:
-                    webbrowser.open(html_files[0].resolve().as_uri())
-                    console.print(f"[bold green]✔ Opened {html_files[0].name} in browser![/bold green]")
+                    try:
+                        webbrowser.open(html_files[0].resolve().as_uri())
+                        console.print(f"[bold green]✔ Opened {html_files[0].name} in browser![/bold green]")
+                    except Exception as e:
+                        console.print(f"[yellow]Could not launch browser (headless system?): {e}[/yellow]")
+                        console.print(f"[cyan]Report file saved at: {html_files[0].resolve()}[/cyan]")
                 Prompt.ask("Press Enter to continue")
             elif choice.isdigit() and 1 <= int(choice) <= len(valid_files):
                 selected = valid_files[int(choice) - 1]
                 if selected.suffix == ".html":
-                    webbrowser.open(selected.resolve().as_uri())
-                    console.print(f"[bold green]✔ Opened {selected.name} in browser![/bold green]")
+                    try:
+                        webbrowser.open(selected.resolve().as_uri())
+                        console.print(f"[bold green]✔ Opened {selected.name} in browser![/bold green]")
+                    except Exception as e:
+                        console.print(f"[yellow]Could not launch browser (headless system?): {e}[/yellow]")
+                        console.print(f"[cyan]Report file saved at: {selected.resolve()}[/cyan]")
                 else:
                     console.print(Panel(selected.read_text(encoding="utf-8", errors="replace"), title=selected.name, border_style="cyan"))
                 Prompt.ask("Press Enter to continue")
@@ -758,5 +766,10 @@ class InteractiveDashboard:
                 console.print(f"[red]Error starting server: {e}[/red]")
             Prompt.ask("\nPress Enter to return to main menu")
         elif choice == "2":
-            webbrowser.open("http://127.0.0.1:8000/docs")
+            try:
+                webbrowser.open("http://127.0.0.1:8000/docs")
+                console.print("[bold green]✔ Opened API documentation in browser![/bold green]")
+            except Exception as e:
+                console.print(f"[yellow]Could not launch browser: {e}[/yellow]")
+                console.print("[cyan]API Documentation URL: http://127.0.0.1:8000/docs[/cyan]")
             Prompt.ask("Press Enter to continue")

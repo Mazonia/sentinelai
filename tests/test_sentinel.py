@@ -255,3 +255,40 @@ def test_celery_windows_pool_config():
     from sentinelai.automation.scheduler import celery_app
     if sys.platform == "win32":
         assert celery_app.conf.worker_pool == "solo"
+
+
+def test_cross_platform_setup_scripts():
+    """Verify both Linux and Windows setup and launcher scripts are present and valid"""
+    root_dir = Path(__file__).resolve().parent.parent
+    
+    # Windows scripts
+    win_bat = root_dir / "install_windows.bat"
+    win_ps1 = root_dir / "install_windows.ps1"
+    launcher_ps1 = root_dir / "sentinelai.ps1"
+    assert win_bat.exists() and len(win_bat.read_text(encoding="utf-8")) > 100
+    assert win_ps1.exists() and len(win_ps1.read_text(encoding="utf-8")) > 100
+    assert launcher_ps1.exists() and len(launcher_ps1.read_text(encoding="utf-8")) > 50
+
+    # Linux scripts
+    linux_sh = root_dir / "install_linux.sh"
+    sentinel_sh = root_dir / "sentinel.sh"
+    assert linux_sh.exists() and len(linux_sh.read_text(encoding="utf-8")) > 100
+    assert sentinel_sh.exists() and len(sentinel_sh.read_text(encoding="utf-8")) > 50
+
+
+def test_requirements_txt_compatibility():
+    """Verify requirements.txt contains flexible modern version bounds and no broken legacy pins"""
+    req_file = Path(__file__).resolve().parent.parent / "requirements.txt"
+    assert req_file.exists()
+    req_text = req_file.read_text(encoding="utf-8")
+    
+    # Check essential cross-platform dependencies
+    assert "rich>=" in req_text
+    assert "aiohttp>=" in req_text
+    assert "pydantic>=" in req_text
+    assert "fastapi>=" in req_text
+    assert "sqlalchemy" in req_text
+    assert "aiosqlite>=" in req_text
+    
+    # Ensure unmaintained passlib[bcrypt] was eliminated
+    assert "passlib[bcrypt]" not in req_text
