@@ -20,3 +20,7 @@ reports/
 # Local environment configs
 .env
 .env*.local
+
+*.egg-info/
+build/
+dist/

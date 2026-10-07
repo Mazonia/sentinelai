@@ -6,6 +6,14 @@ import sys
 import asyncio
 from pathlib import Path
 
+# Fix Windows console UTF-8 output
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
@@ -19,15 +27,17 @@ from sentinelai.utils.report_generator import ReportGenerator
 
 def print_help():
     print("""
-SentinelAI - AI-Powered Offensive Security & Vulnerability Arsenal
+🛡️ SentinelAI - AI-Powered Offensive Security & Vulnerability Arsenal
 
 Usage:
-    python -m sentinelai.cli.main                     Launch interactive terminal dashboard
-    python -m sentinelai.cli.main scan <target_url>   Run full automated vulnerability scan
-    python -m sentinelai.cli.main recon <domain>      Perform OSINT & Reconnaissance on domain
-    python -m sentinelai.cli.main fuzz <target_url>   Fuzz sensitive files & hidden paths
-    python -m sentinelai.cli.main tools               Open the curated security tools arsenal
-    python -m sentinelai.cli.main --help              Show this help message
+    sentinelai                     Launch interactive numbered terminal console (Recommended)
+    sentinelai scan <target_url>   Run full automated vulnerability scan on target
+    sentinelai recon <domain>      Perform OSINT & Reconnaissance on domain
+    sentinelai fuzz <target_url>   Fuzz sensitive files & hidden paths on target
+    sentinelai tools               Open the curated security tools arsenal
+    sentinelai reports             Browse and open generated security audit reports
+    sentinelai api                 Start local FastAPI backend at http://127.0.0.1:8000
+    sentinelai --help              Show this help message
 """)
 
 
@@ -42,9 +52,10 @@ def main():
         print_help()
     elif cmd == "scan":
         if len(sys.argv) < 3:
-            print("Usage: python -m sentinelai.cli.main scan <target_url>")
-            sys.exit(1)
+            InteractiveDashboard.run_full_scan_flow()
+            return
         target = sys.argv[2]
+        InteractiveDashboard.session_target = target
         print(f"[*] Starting SentinelAI scan on: {target}")
         scanner = StandaloneScanner()
         results = asyncio.run(scanner.run_full_scan(target, enable_ai=True))
@@ -59,9 +70,10 @@ def main():
         print(f"[+] Audit Markdown report saved: {md_p.resolve()}")
     elif cmd == "recon":
         if len(sys.argv) < 3:
-            print("Usage: python -m sentinelai.cli.main recon <domain>")
-            sys.exit(1)
+            InteractiveDashboard.run_recon_flow()
+            return
         target = sys.argv[2]
+        InteractiveDashboard.session_target = target
         print(f"[*] Starting OSINT & Reconnaissance on: {target}")
         recon = ReconDetector()
         res = asyncio.run(recon.scan_domain(target))
@@ -72,9 +84,10 @@ def main():
         print(f"[+] Subdomains ({len(res['subdomains'])}): {res['subdomains'][:10]}")
     elif cmd == "fuzz":
         if len(sys.argv) < 3:
-            print("Usage: python -m sentinelai.cli.main fuzz <target_url>")
-            sys.exit(1)
+            InteractiveDashboard.run_fuzzer_flow()
+            return
         target = sys.argv[2]
+        InteractiveDashboard.session_target = target
         print(f"[*] Starting Fast Path Fuzzing on: {target}")
         async def _run_fuzz():
             client = AsyncHTTPClient(timeout=10, max_concurrent=25)
@@ -88,9 +101,13 @@ def main():
             print(f"    [{f['severity']}] {f['parameter']} -> {f['evidence']}")
     elif cmd in ("tools", "arsenal"):
         InteractiveDashboard.run_arsenal_flow()
+    elif cmd in ("reports", "report"):
+        InteractiveDashboard.run_reports_flow()
+    elif cmd in ("api", "server"):
+        InteractiveDashboard.run_server_flow()
     else:
-        print(f"Unknown command '{cmd}'. Use --help for options.")
-        sys.exit(1)
+        print(f"Unknown command '{cmd}'. Launching interactive menu...")
+        InteractiveDashboard.main_menu()
 
 
 if __name__ == "__main__":

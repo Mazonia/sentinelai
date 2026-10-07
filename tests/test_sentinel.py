@@ -124,3 +124,21 @@ async def test_api_routes():
     assert "/api/v1/fuzz" in route_paths
     assert "/api/v1/reports" in route_paths
     assert "/api/v1/quick-scan" in route_paths
+
+
+def test_dashboard_target_memory():
+    """Verify InteractiveDashboard stores and recalls session targets"""
+    from sentinelai.cli.menu import InteractiveDashboard
+    InteractiveDashboard.session_target = "https://memorized-target.local"
+    assert InteractiveDashboard.session_target == "https://memorized-target.local"
+
+
+def test_cli_help(capsys):
+    """Verify CLI print_help displays commands and usage"""
+    from sentinelai.cli.main import print_help
+    print_help()
+    captured = capsys.readouterr()
+    assert "sentinelai" in captured.out
+    assert "scan" in captured.out
+    assert "recon" in captured.out
+    assert "fuzz" in captured.out

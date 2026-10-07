@@ -72,25 +72,45 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Interactive Terminal Dashboard (Zero Setup)
+### 2. Interactive Numbered Console (Zero Typing Required)
+Simply type `sentinelai` (or `sentinel`) — no python prefixes or complex syntax needed:
 ```bash
-python -m sentinelai.cli.main
-# Or on Windows double-click: run_cli.bat
+sentinelai
 ```
+This launches the guided numbered console:
+```text
+[1] 🎯 Full Automated Security Scan (Crawl, OWASP Audit, AI False-Positive Reduction)
+[2] 🔍 Reconnaissance & OSINT Engine (DNS, Subdomains, Ports, WAF & Tech Stack)
+[3] 📂 Fast Sensitive File Fuzzer (Probes .env, .git, backups, SQL dumps, APIs)
+[4] 🧪 Targeted Vulnerability Tester (Directly audit SQLi, XSS, CORS, SSRF, LFI)
+[5] 🧰 Security Tools Arsenal (Interactive launcher for Nmap, SQLmap, Nikto...)
+[6] 📄 View & Open Audit Reports (1-click Cyberpunk HTML browser viewer)
+[7] 🌐 Launch Web API / Swagger (Starts backend at http://127.0.0.1:8000)
+[8] 🎯 Set / Change Active Target (Session memory reuses your target across menus)
+[0] 🚪 Exit
+```
+Just enter a number (`1`, `2`, `3`...). SentinelAI guides you through each step and remembers your active target so you rarely have to re-type anything!
 
-### 3. CLI Direct Subcommands
+### 3. Optional Direct Shorthand Commands
+You can also run direct actions by passing arguments to `sentinelai`:
 ```bash
 # Full Automated Scan with AI Remediation & Report Generation:
-python -m sentinelai.cli.main scan https://example.com
+sentinelai scan https://example.com
 
-# Domain Reconnaissance & OSINT (WAF, DNS, Ports, Subdomains):
-python -m sentinelai.cli.main recon example.com
+# Domain Reconnaissance & OSINT:
+sentinelai recon example.com
 
 # Sensitive File & Hidden Path Fuzzing:
-python -m sentinelai.cli.main fuzz https://example.com
+sentinelai fuzz https://example.com
 
-# Launch Security Tool Arsenal & Environment Manager:
-python -m sentinelai.cli.main tools
+# Launch Security Tool Arsenal:
+sentinelai tools
+
+# Browse & open generated reports:
+sentinelai reports
+
+# Start REST API backend:
+sentinelai api
 ```
 
 ### 4. Running Tests
