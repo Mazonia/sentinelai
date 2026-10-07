@@ -27,13 +27,23 @@
 ## 🚀 Key Highlights & Capabilities
 
 ### 1. 🧰 Curated Security Tools Arsenal *(Inspired by hackingtool)*
-Instant host environment detection and one-click launchpad for 15+ industry-standard security tools:
-- **Port & Network Scanning**: Nmap, RustScan, Masscan
-- **Web Vulnerability Scanning**: Nikto, Nuclei, Wapiti, WPScan
-- **Content & Directory Fuzzing**: Gobuster, FFuF, Dirsearch
-- **Database & Injection**: SQLmap, Ghauri
-- **OSINT & Recon**: Sublist3r, WhatWeb, Whois
-- **SSL / TLS Auditing**: testssl.sh, SSLyze
+Instant host environment detection, 1-click auto-installation, live execution streaming, and evidence logging for 26+ industry-standard security tools across 10 categories:
+- **Network Discovery & Port Auditing**: Nmap, RustScan, Masscan, Netcat (nc)
+- **Web Vulnerability & DAST Scanners**: Nikto, Nuclei, Wapiti
+- **CMS & Framework Auditing**: WPScan, CMSmap, Droopescan
+- **Directory, File & Parameter Fuzzing**: Gobuster, FFuF, Dirsearch, Feroxbuster
+- **Database & SQL Injection Auditing**: SQLmap, Ghauri
+- **OSINT & Subdomain Intelligence**: Sublist3r, WhatWeb, Whois, theHarvester
+- **DNS & Infrastructure Enumeration**: Dnsrecon, Dnsenum
+- **SSL / TLS & Cipher Auditing**: testssl.sh, SSLyze
+- **Secrets & Repository Intelligence**: TruffleHog
+- **Web Parameter & Route Spidering**: ParamSpider
+
+### 2. ⚡ Multi-Task Automated Workflows (Chained 1-Click Tasks)
+- **Perimeter & Infrastructure Recon**: DNS + crt.sh Subdomains + 22 Ports + WAF + Security Headers (~10s).
+- **Content & Sensitive File Discovery**: Web Crawl + 50 Paths + Configs + Backups + LFI (~25s).
+- **API & Endpoint Attack Surface**: Swagger/OpenAPI + GraphQL + CORS + SSRF Vectors (~20s).
+- **Complete Full-Scope Assessment**: End-to-end full audit suite with AI correlation and false-positive elimination.
 
 ### 2. 🔍 Standalone Reconnaissance & OSINT Engine
 - **Subdomain Discovery**: High-speed discovery via Certificate Transparency (crt.sh) & asynchronous DNS resolution.
@@ -79,14 +89,15 @@ sentinelai
 ```
 This launches the guided numbered console:
 ```text
-[1] 🎯 Full Automated Security Scan (Crawl, OWASP Audit, AI False-Positive Reduction)
-[2] 🔍 Reconnaissance & OSINT Engine (DNS, Subdomains, Ports, WAF & Tech Stack)
-[3] 📂 Fast Sensitive File Fuzzer (Probes .env, .git, backups, SQL dumps, APIs)
-[4] 🧪 Targeted Vulnerability Tester (Directly audit SQLi, XSS, CORS, SSRF, LFI)
-[5] 🧰 Security Tools Arsenal (Interactive launcher for Nmap, SQLmap, Nikto...)
-[6] 📄 View & Open Audit Reports (1-click Cyberpunk HTML browser viewer)
-[7] 🌐 Launch Web API / Swagger (Starts backend at http://127.0.0.1:8000)
-[8] 🎯 Set / Change Active Target (Session memory reuses your target across menus)
+[1] ⚡ Multi-Task Assessment Workflows (1-Click Chained Presets: Perimeter, Content, API, Full)
+[2] 🎯 Full Deep Vulnerability Scan (Crawl, OWASP Audit Suite, AI Analysis & Report)
+[3] 🔍 Reconnaissance & OSINT Engine (DNS, Subdomains, 22-Port Scanner, WAF Identification)
+[4] 📂 Fast Sensitive File Fuzzer (Probes .env, .git, backups, SQL dumps, APIs)
+[5] 🧪 Targeted Vulnerability Tester (Directly audit SQLi, XSS, CORS, SSRF, LFI, Headers)
+[6] 🧰 Security Tools Arsenal (26+ Tools across 10 Categories with 1-Click Auto-Install & Logs)
+[7] 📄 View & Open Audit Reports (Browse, read, and 1-click open Cyberpunk HTML reports)
+[8] 🌐 Start SentinelAI REST API Server (Launch FastAPI backend on localhost:8000)
+[9] 🎯 Set / Change Active Target (Configure session memory target)
 [0] 🚪 Exit
 ```
 Just enter a number (`1`, `2`, `3`...). SentinelAI guides you through each step and remembers your active target so you rarely have to re-type anything!

@@ -116,3 +116,119 @@ class StandaloneScanner:
 
         await self.http_client.close()
         return results
+
+    async def run_perimeter_recon(
+        self,
+        target_url: str,
+        progress_cb: Optional[Callable[[str, int], None]] = None
+    ) -> Dict[str, Any]:
+        """Fast ~10s perimeter audit: OSINT + DNS + 22 Ports + WAF + Security Headers"""
+        if not target_url.startswith("http://") and not target_url.startswith("https://"):
+            target_url = f"https://{target_url}"
+
+        results = {
+            "target": target_url,
+            "workflow": "Perimeter & Infrastructure Recon",
+            "recon": {},
+            "findings": []
+        }
+
+        if progress_cb:
+            progress_cb("Gathering OSINT, WAF, DNS & Open Ports...", 20)
+        results["recon"] = await self.recon.scan_domain(target_url)
+
+        if progress_cb:
+            progress_cb("Auditing Security Headers & Infrastructure Misconfigurations...", 60)
+        try:
+            cfg_findings = await self.detectors["config"].scan([target_url])
+            for f in cfg_findings:
+                f["module"] = "config"
+                results["findings"].append(f)
+        except Exception as e:
+            logger.debug(f"Config scan error: {e}")
+
+        if progress_cb:
+            progress_cb("Perimeter Assessment Complete!", 100)
+        await self.http_client.close()
+        return results
+
+    async def run_content_discovery(
+        self,
+        target_url: str,
+        progress_cb: Optional[Callable[[str, int], None]] = None
+    ) -> Dict[str, Any]:
+        """High-speed content & sensitive file audit: Fuzzing + Crawling + LFI"""
+        if not target_url.startswith("http://") and not target_url.startswith("https://"):
+            target_url = f"https://{target_url}"
+
+        results = {
+            "target": target_url,
+            "workflow": "Content & Sensitive File Discovery",
+            "findings": [],
+            "crawled_urls": []
+        }
+
+        if progress_cb:
+            progress_cb("Probing 50+ sensitive files, configs, and backup dumps...", 25)
+        try:
+            fuzz_findings = await self.detectors["fuzzer"].scan([target_url])
+            for f in fuzz_findings:
+                f["module"] = "fuzzer"
+                results["findings"].append(f)
+        except Exception as e:
+            logger.debug(f"Fuzzer error: {e}")
+
+        if progress_cb:
+            progress_cb("Testing for Directory Traversal & LFI vectors...", 70)
+        try:
+            lfi_findings = await self.detectors["traversal"].scan([target_url])
+            for f in lfi_findings:
+                f["module"] = "traversal"
+                results["findings"].append(f)
+        except Exception as e:
+            logger.debug(f"Traversal error: {e}")
+
+        if progress_cb:
+            progress_cb("Content Discovery Complete!", 100)
+        await self.http_client.close()
+        return results
+
+    async def run_api_discovery(
+        self,
+        target_url: str,
+        progress_cb: Optional[Callable[[str, int], None]] = None
+    ) -> Dict[str, Any]:
+        """API attack surface audit: Swagger/OpenAPI + GraphQL + CORS + SSRF"""
+        if not target_url.startswith("http://") and not target_url.startswith("https://"):
+            target_url = f"https://{target_url}"
+
+        results = {
+            "target": target_url,
+            "workflow": "API & Route Attack Surface Audit",
+            "findings": []
+        }
+
+        if progress_cb:
+            progress_cb("Discovering REST, GraphQL & Swagger/OpenAPI endpoints...", 30)
+        try:
+            api_findings = await self.detectors["api"].scan([target_url])
+            for f in api_findings:
+                f["module"] = "api"
+                results["findings"].append(f)
+        except Exception as e:
+            logger.debug(f"API detector error: {e}")
+
+        if progress_cb:
+            progress_cb("Auditing Cross-Origin (CORS) & SSRF input vectors...", 70)
+        try:
+            cors_findings = await self.detectors["cors_ssrf"].scan([target_url])
+            for f in cors_findings:
+                f["module"] = "cors_ssrf"
+                results["findings"].append(f)
+        except Exception as e:
+            logger.debug(f"CORS/SSRF error: {e}")
+
+        if progress_cb:
+            progress_cb("API Surface Audit Complete!", 100)
+        await self.http_client.close()
+        return results

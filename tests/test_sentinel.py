@@ -142,3 +142,28 @@ def test_cli_help(capsys):
     assert "scan" in captured.out
     assert "recon" in captured.out
     assert "fuzz" in captured.out
+
+
+def test_arsenal_categories_and_modes():
+    """Verify expanded arsenal has 10 categories, presets, and pip packages"""
+    tools = ToolArsenal.get_all_tools()
+    assert len(tools) >= 25
+    assert len(ARSENAL_CATEGORIES) == 10
+
+    pip_tools = [t for t in tools if t.get("pip_pkg")]
+    assert len(pip_tools) >= 8
+
+    # Check presets
+    for t in tools:
+        assert "preset" in t
+        assert "desc" in t
+
+
+def test_scanner_specialized_workflows():
+    """Verify StandaloneScanner supports multi-task workflows"""
+    from sentinelai.core.standalone_scanner import StandaloneScanner
+    scanner = StandaloneScanner()
+    assert hasattr(scanner, "run_perimeter_recon")
+    assert hasattr(scanner, "run_content_discovery")
+    assert hasattr(scanner, "run_api_discovery")
+    assert hasattr(scanner, "run_full_scan")

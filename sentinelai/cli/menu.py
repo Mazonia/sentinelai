@@ -1,8 +1,8 @@
 """
-Interactive Rich Terminal Dashboard & Numbered Arsenal Launcher for SentinelAI
+Interactive Rich Terminal Dashboard & High-Efficiency Arsenal for SentinelAI
 Designed for zero-typing navigation: users simply enter numbers (1, 2, 3...)
-to execute complete reconnaissance, deep vulnerability audits, fuzzer scans,
-and tool launches with full target memory and automatic report opening.
+to execute complete workflows, targeted audits, and external tools with
+persistent target memory, 1-click auto-installation, and live execution logging.
 """
 import asyncio
 import os
@@ -62,8 +62,8 @@ class InteractiveDashboard:
         console.print(BANNER)
         target_display = f"[bold green]{cls.session_target}[/bold green]" if cls.session_target else "[dim]Not Set[/dim]"
         console.print(Panel.fit(
-            f"[bold white]Current Target:[/bold white] {target_display}  "
-            f"[dim]|[/dim]  [cyan]Tip: Type numbers [bold yellow]1-8[/bold yellow] or shorthand commands ([bold]scan[/bold], [bold]recon[/bold], [bold]fuzz[/bold], [bold]tools[/bold])[/cyan]",
+            f"[bold white]Active Target:[/bold white] {target_display}  "
+            f"[dim]|[/dim]  [cyan]Tip: Enter single-digit numbers ([bold yellow]1-9[/bold yellow]) or shorthand commands ([bold]scan[/bold], [bold]recon[/bold], [bold]fuzz[/bold], [bold]tools[/bold])[/cyan]",
             border_style="cyan"
         ))
 
@@ -74,7 +74,6 @@ class InteractiveDashboard:
         choice = Prompt.ask(f"\n[bold cyan]{prompt_msg}[/bold cyan]", default=default_val).strip()
         if not choice or choice == "0":
             return None
-        # Format target
         if not choice.startswith("http://") and not choice.startswith("https://") and not choice.startswith("127."):
             if "." in choice:
                 choice = f"https://{choice}"
@@ -88,53 +87,129 @@ class InteractiveDashboard:
             cls.display_banner()
             table = Table(title="[bold yellow]SENTINELAI INTERACTIVE CONSOLE[/bold yellow]", border_style="blue", show_header=True)
             table.add_column("#", style="bold green", width=4)
-            table.add_column("Security Module", style="bold white", width=34)
-            table.add_column("Description / Action", style="dim")
+            table.add_column("Security Module / Workflow", style="bold white", width=36)
+            table.add_column("Description / Capability", style="dim")
 
-            table.add_row("1", "🎯 Full Automated Security Scan", "Crawl, OWASP audit, AI false-positive reduction & report")
-            table.add_row("2", "🔍 Reconnaissance & OSINT Engine", "DNS, certificate subdomains, 22-port scanner, WAF identification")
-            table.add_row("3", "📂 Fast Sensitive File Fuzzer", "Multi-threaded discovery of .env, .git, backups, configs & APIs")
-            table.add_row("4", "🧪 Targeted Vulnerability Tester", "Audit specific flaw: SQLi, XSS, CORS/SSRF, LFI, Headers")
-            table.add_row("5", "🧰 Security Tools Arsenal", "Launchpad for 15+ external tools (Nmap, SQLmap, Nikto...)")
-            table.add_row("6", "📄 View & Open Audit Reports", "Browse & open generated Cyberpunk HTML / Markdown reports")
-            table.add_row("7", "🌐 Launch Web API / Swagger", "Start background FastAPI backend server at localhost:8000")
-            table.add_row("8", "🎯 Set / Change Active Target", f"Configure default session target [{cls.session_target or 'None'}]")
+            table.add_row("1", "⚡ Multi-Task Assessment Workflows", "1-Click chained presets (Perimeter, Content, API, Full)")
+            table.add_row("2", "🎯 Full Deep Vulnerability Scan", "Crawl, OWASP audit suite, AI analysis & report generation")
+            table.add_row("3", "🔍 Reconnaissance & OSINT Engine", "DNS, certificate subdomains, 22-port scanner, WAF identification")
+            table.add_row("4", "📂 Fast Sensitive File Fuzzer", "Multi-threaded discovery of .env, .git, backups, SQL & APIs")
+            table.add_row("5", "🧪 Targeted Vulnerability Tester", "Directly audit SQLi, XSS, CORS, SSRF, LFI, and Security Headers")
+            table.add_row("6", "🧰 Security Tools Arsenal", "26+ Tools across 10 Categories with 1-Click Auto-Install & Logs")
+            table.add_row("7", "📄 View & Open Audit Reports", "Browse, read, and 1-click open Cyberpunk HTML reports in browser")
+            table.add_row("8", "🌐 Start SentinelAI REST API Server", "Launch FastAPI backend on localhost:8000 + Swagger UI docs")
+            table.add_row("9", "🎯 Set / Change Active Target", f"Configure session memory target [{cls.session_target or 'None'}]")
             table.add_row("0", "🚪 Exit SentinelAI", "Quit framework")
 
             console.print(table)
-            choice = Prompt.ask("\n[bold cyan]Select an option [0-8][/bold cyan]", default="1").strip().lower()
+            choice = Prompt.ask("\n[bold cyan]Select an option [0-9][/bold cyan]", default="1").strip().lower()
 
-            if choice in ("1", "scan"):
+            if choice in ("1", "workflow", "workflows"):
+                cls.run_workflows_flow()
+            elif choice in ("2", "scan"):
                 cls.run_full_scan_flow()
-            elif choice in ("2", "recon"):
+            elif choice in ("3", "recon"):
                 cls.run_recon_flow()
-            elif choice in ("3", "fuzz"):
+            elif choice in ("4", "fuzz"):
                 cls.run_fuzzer_flow()
-            elif choice in ("4", "audit", "test"):
+            elif choice in ("5", "audit", "test"):
                 cls.run_targeted_audit_flow()
-            elif choice in ("5", "tools", "arsenal"):
+            elif choice in ("6", "tools", "arsenal"):
                 cls.run_arsenal_flow()
-            elif choice in ("6", "reports", "report"):
+            elif choice in ("7", "reports", "report"):
                 cls.run_reports_flow()
-            elif choice in ("7", "api", "server"):
+            elif choice in ("8", "api", "server"):
                 cls.run_server_flow()
-            elif choice in ("8", "target"):
+            elif choice in ("9", "target"):
                 cls.set_target_flow()
             elif choice in ("0", "exit", "quit", "q"):
                 console.print("\n[bold green]Stay safe! Exiting SentinelAI...[/bold green]\n")
                 sys.exit(0)
             else:
-                console.print("[red]Invalid selection! Enter a number between 0 and 8.[/red]")
+                console.print("[red]Invalid selection! Enter a number between 0 and 9.[/red]")
                 Prompt.ask("Press Enter to continue")
 
     @classmethod
     def set_target_flow(cls):
-        """Quickly configure session target"""
-        console.print(Panel("[bold cyan]Target Session Manager[/bold cyan]\nSet a base target URL or domain to reuse across all menus."))
+        """Configure session target"""
+        console.print(Panel("[bold cyan]Session Target Manager[/bold cyan]\nSet a base target URL or domain to reuse across all menus."))
         new_target = cls.get_target_input("Enter New Target URL or Domain")
         if new_target:
             console.print(f"[bold green]✔ Target updated to:[/bold green] {cls.session_target}")
         Prompt.ask("\nPress Enter to return to main menu")
+
+    @classmethod
+    def run_workflows_flow(cls):
+        """1-Click Chained Multi-Task Security Workflows"""
+        while True:
+            cls.display_banner()
+            console.print("[bold yellow]⚡ MULTI-TASK AUTOMATED WORKFLOWS (Chained 1-Click Tasks)[/bold yellow]\n")
+            console.print("[1] 🌐 Perimeter & Infrastructure Recon  - OSINT + DNS + 22 Ports + WAF + Headers (Fast ~10s)")
+            console.print("[2] 📂 Content & Sensitive File Discovery - Crawl + 50 Paths + Configs + Backups + LFI (~25s)")
+            console.print("[3] 🔌 API & Endpoint Attack Surface     - Swagger/OpenAPI + GraphQL + CORS + SSRF Vectors (~20s)")
+            console.print("[4] 🛡️ Complete Full-Scope Assessment     - Recon -> Crawl -> Full 9-Module Audit -> AI Patches")
+            console.print("[0] 🔙 Back to Main Menu\n")
+
+            wf_choice = Prompt.ask("Select workflow [0-4]", default="1")
+            if wf_choice == "0":
+                break
+
+            target = cls.get_target_input("Target URL for Workflow Execution")
+            if not target:
+                continue
+
+            scanner = StandaloneScanner()
+            results = {}
+
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TimeElapsedColumn(),
+                console=console
+            ) as progress:
+                task = progress.add_task("[cyan]Running automated workflow...", total=100)
+
+                def update_cb(desc: str, pct: int):
+                    progress.update(task, description=f"[cyan]{desc}[/cyan]", completed=pct)
+
+                if wf_choice == "1":
+                    results = asyncio.run(scanner.run_perimeter_recon(target, progress_cb=update_cb))
+                elif wf_choice == "2":
+                    results = asyncio.run(scanner.run_content_discovery(target, progress_cb=update_cb))
+                elif wf_choice == "3":
+                    results = asyncio.run(scanner.run_api_discovery(target, progress_cb=update_cb))
+                elif wf_choice == "4":
+                    results = asyncio.run(scanner.run_full_scan(target, enable_ai=True, progress_cb=update_cb))
+
+            cls.display_scan_results(results)
+
+            # Auto-save report
+            out_dir = Path("reports")
+            out_dir.mkdir(exist_ok=True)
+            safe_target = target.replace("https://", "").replace("http://", "").replace("/", "_").replace(":", "_")
+            html_p = ReportGenerator.generate_html(results, out_dir / f"sentinel_{safe_target}.html")
+            md_p = ReportGenerator.generate_markdown(results, out_dir / f"sentinel_{safe_target}.md")
+            console.print(f"\n[bold green]✔ Reports generated in ./reports/[/bold green]")
+
+            # Follow-up actions
+            while True:
+                console.print("\n[bold yellow]Next Action:[/bold yellow]")
+                console.print("[1] 🌐 Open HTML Report in Default Browser")
+                console.print("[2] 📄 Print Markdown Summary")
+                console.print("[0] 🔙 Return to Workflows Menu")
+
+                act = Prompt.ask("Select action", default="1")
+                if act == "1":
+                    try:
+                        webbrowser.open(html_p.resolve().as_uri())
+                        console.print("[bold green]✔ Opened report in browser![/bold green]")
+                    except Exception as e:
+                        console.print(f"[red]Could not open browser: {e}[/red]")
+                elif act == "2":
+                    console.print(Panel(md_p.read_text(encoding="utf-8"), title="Markdown Report", border_style="cyan"))
+                elif act == "0":
+                    break
 
     @classmethod
     def run_full_scan_flow(cls):
@@ -145,16 +220,12 @@ class InteractiveDashboard:
         if not target:
             return
 
-        # Numbered Intensity Selection
         console.print("\n[bold]Select Scan Intensity:[/bold]")
         console.print("[1] Standard Audit (Medium intensity, optimal speed & depth) [Recommended]")
         console.print("[2] Fast Scan (Top endpoints & error-based checks only)")
         console.print("[3] Deep Audit (High intensity, exhaustive payloads)")
         intensity_choice = Prompt.ask("Select intensity", default="1")
-        intensity_map = {"1": "medium", "2": "low", "3": "high"}
-        intensity = intensity_map.get(intensity_choice, "medium")
 
-        # Numbered AI toggle
         console.print("\n[bold]AI Correlation & Remediation Guidance:[/bold]")
         console.print("[1] Enabled (AI analyzes findings and generates patches) [Recommended]")
         console.print("[2] Disabled (Heuristic baseline only)")
@@ -178,7 +249,6 @@ class InteractiveDashboard:
 
         cls.display_scan_results(results)
 
-        # Automatically export reports
         out_dir = Path("reports")
         out_dir.mkdir(exist_ok=True)
         safe_target = target.replace("https://", "").replace("http://", "").replace("/", "_").replace(":", "_")
@@ -186,15 +256,8 @@ class InteractiveDashboard:
         md_p = ReportGenerator.generate_markdown(results, out_dir / f"sentinel_{safe_target}.md")
         json_p = ReportGenerator.generate_json(results, out_dir / f"sentinel_{safe_target}.json")
 
-        cls.last_report_files = {
-            "html": str(html_p.resolve()),
-            "md": str(md_p.resolve()),
-            "json": str(json_p.resolve())
-        }
-
         console.print(f"\n[bold green]✔ Reports generated in ./reports/[/bold green]")
 
-        # Guided Post-Scan Action Loop
         while True:
             console.print("\n[bold yellow]What would you like to do next?[/bold yellow]")
             console.print("[1] 🌐 Open Cyberpunk HTML Report in Default Browser")
@@ -230,15 +293,16 @@ class InteractiveDashboard:
     def display_scan_results(cls, results: dict):
         console.print("\n[bold green]========== SCAN COMPLETED ==========[/bold green]\n")
         recon = results.get("recon", {})
-        console.print(Panel(
-            f"[bold]Target:[/bold] {results.get('target')}\n"
-            f"[bold]Host IP:[/bold] {', '.join(recon.get('ip_addresses', [])) or 'N/A'}\n"
-            f"[bold]WAF Detected:[/bold] {recon.get('waf') or 'None detected'}\n"
-            f"[bold]Open Ports:[/bold] {', '.join(str(p['port']) for p in recon.get('open_ports', [])) or 'None'}\n"
-            f"[bold]Discovered Subdomains:[/bold] {len(recon.get('subdomains', []))}",
-            title="[bold cyan]Reconnaissance Overview[/bold cyan]",
-            border_style="blue"
-        ))
+        if recon:
+            console.print(Panel(
+                f"[bold]Target:[/bold] {results.get('target')}\n"
+                f"[bold]Host IP:[/bold] {', '.join(recon.get('ip_addresses', [])) or 'N/A'}\n"
+                f"[bold]WAF Detected:[/bold] {recon.get('waf') or 'None detected'}\n"
+                f"[bold]Open Ports:[/bold] {', '.join(str(p['port']) for p in recon.get('open_ports', [])) or 'None'}\n"
+                f"[bold]Discovered Subdomains:[/bold] {len(recon.get('subdomains', []))}",
+                title="[bold cyan]Reconnaissance Overview[/bold cyan]",
+                border_style="blue"
+            ))
 
         findings = results.get("findings", [])
         if not findings:
@@ -271,7 +335,6 @@ class InteractiveDashboard:
         if not target:
             return
 
-        # Strip http for domain lookup
         clean_domain = target.replace("https://", "").replace("http://", "").split("/")[0].split(":")[0]
 
         with console.status(f"[bold cyan]Running OSINT & port scans on {clean_domain}...[/bold cyan]"):
@@ -298,7 +361,6 @@ class InteractiveDashboard:
                 sub_panel += f"\n...and {len(results['subdomains']) - 25} more"
             console.print(Panel(sub_panel, title="Discovered Subdomains", border_style="blue"))
 
-        # Numbered Next Actions
         while True:
             console.print("\n[bold yellow]Next Action:[/bold yellow]")
             console.print("[1] 🎯 Run Full Vulnerability Scan on this target")
@@ -438,17 +500,17 @@ class InteractiveDashboard:
 
     @classmethod
     def run_arsenal_flow(cls):
-        """Curated tools arsenal launcher with host environment checks"""
+        """Enhanced tools arsenal launcher with 10 categories, auto-install, and live logging"""
         while True:
             cls.display_banner()
-            console.print("[bold yellow]🧰 SECURITY TOOLS ARSENAL (Inspired by hackingtool)[/bold yellow]\n")
+            console.print("[bold yellow]🧰 SECURITY TOOLS ARSENAL (30+ Tools across 10 Categories)[/bold yellow]\n")
 
             cats = list(ARSENAL_CATEGORIES.keys())
             for idx, cat in enumerate(cats, 1):
                 console.print(f"[bold cyan][{idx}][/bold cyan] {cat}")
             console.print("[bold red][0][/bold red] 🔙 Back to Main Menu")
 
-            choice = Prompt.ask("\nSelect a category [0-6]", default="1")
+            choice = Prompt.ask("\nSelect a category [0-10]", default="1")
             if choice == "0":
                 break
 
@@ -485,33 +547,47 @@ class InteractiveDashboard:
                             f"[bold]Tool:[/bold] {selected['name']}\n"
                             f"[bold]Description:[/bold] {selected['desc']}\n"
                             f"[bold]Status:[/bold] {'[green]Installed in PATH[/green]' if is_installed else '[red]Not installed[/red]'}\n"
-                            f"[bold]Preset Command:[/bold] [yellow]{selected['preset']}[/yellow]\n"
-                            f"[bold]Installation Command:[/bold] [green]{selected['install']}[/green]",
-                            title=f"Tool Details: {selected['name']}",
+                            f"[bold]Quick Preset:[/bold] [yellow]{selected.get('preset_quick', selected['preset'])}[/yellow]\n"
+                            f"[bold]Deep Preset:[/bold] [yellow]{selected.get('preset_deep', selected['preset'])}[/yellow]\n"
+                            f"[bold]Install Guide:[/bold] [green]{selected['install']}[/green]",
+                            title=f"Tool: {selected['name']}",
                             border_style="cyan"
                         ))
 
                         if not is_installed:
-                            console.print("[bold yellow]To use this tool, install it using the command shown above.[/bold yellow]")
-                            Prompt.ask("Press Enter to continue")
+                            console.print("[bold yellow]Tool Actions:[/bold yellow]")
+                            if selected.get("pip_pkg"):
+                                console.print("[1] ⚡ 1-Click Auto-Install (pip install into environment)")
+                                console.print("[0] 🔙 Back")
+                                act = Prompt.ask("Select action", default="1")
+                                if act == "1":
+                                    success = ToolArsenal.install_tool(selected)
+                                    Prompt.ask("\nPress Enter to continue")
+                            else:
+                                console.print(f"[bold yellow]Install command:[/bold yellow] {selected['install']}")
+                                Prompt.ask("\nPress Enter to continue")
                         else:
-                            console.print("[bold yellow]Actions:[/bold yellow]")
-                            console.print("[1] 🚀 Run Tool with Active Target")
-                            console.print("[2] ✏️ Run with Custom Arguments")
+                            console.print("[bold yellow]Execution Mode:[/bold yellow]")
+                            console.print("[1] 🚀 Run Standard Preset")
+                            console.print("[2] ⚡ Run Quick Scan Mode")
+                            console.print("[3] 🔬 Run Deep / Aggressive Mode")
+                            console.print("[4] ✏️ Enter Custom Command Arguments")
                             console.print("[0] 🔙 Cancel")
                             act = Prompt.ask("Select action", default="1")
 
-                            if act == "1":
+                            if act in ("1", "2", "3", "4"):
                                 target = cls.get_target_input("Target IP/Domain for tool execution")
                                 if target:
-                                    # Clean target if needed
                                     clean_t = target.replace("https://", "").replace("http://", "").split("/")[0]
-                                    ToolArsenal.execute_tool(selected, clean_t)
-                                    Prompt.ask("\nExecution finished. Press Enter to continue")
-                            elif act == "2":
-                                custom_cmd = Prompt.ask("Enter full command to execute", default=f"{selected['cmd']} --help")
-                                subprocess.run(custom_cmd, shell=True)
-                                Prompt.ask("\nExecution finished. Press Enter to continue")
+                                    mode_map = {"1": "standard", "2": "quick", "3": "deep"}
+
+                                    if act == "4":
+                                        custom_args = Prompt.ask("Enter custom arguments", default=f"-u {clean_t}")
+                                        ToolArsenal.execute_tool(selected, clean_t, custom_args=custom_args)
+                                    else:
+                                        ToolArsenal.execute_tool(selected, clean_t, mode=mode_map[act])
+
+                                    Prompt.ask("\nPress Enter to return to tools menu")
 
     @classmethod
     def run_reports_flow(cls):
