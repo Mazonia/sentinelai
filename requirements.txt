@@ -6,6 +6,7 @@ websockets==17.0.1
 # Database
 sqlalchemy[asyncio]==2.0.52
 asyncpg==0.31.0
+aiosqlite>=0.20.0
 alembic==1.19.1
 redis==8.1.0
 

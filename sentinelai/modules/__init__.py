@@ -9,6 +9,9 @@ from .session_hijacking import SessionSecurityTester
 from .automated_exploitation import AutomatedExploitation
 from .recon_detector import ReconDetector
 from .arsenal import ToolArsenal
+from .dir_fuzzer import DirFuzzer
+from .cors_ssrf_detector import CORSSSRFDetector
+from .traversal_detector import PathTraversalDetector
 
 __all__ = [
     'InjectionDetector',
@@ -20,5 +23,8 @@ __all__ = [
     'SessionSecurityTester',
     'AutomatedExploitation',
     'ReconDetector',
-    'ToolArsenal'
+    'ToolArsenal',
+    'DirFuzzer',
+    'CORSSSRFDetector',
+    'PathTraversalDetector'
 ]

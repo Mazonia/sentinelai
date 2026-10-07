@@ -1,5 +1,5 @@
 @echo off
-title SentinelAI - AI Offensive Security & Penetration Testing Arsenal
+title SentinelAI - AI Offensive Security and Vulnerability Arsenal
 chcp 65001 >nul
 cls
 

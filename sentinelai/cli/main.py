@@ -11,7 +11,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from sentinelai.cli.menu import InteractiveDashboard
 from sentinelai.core.standalone_scanner import StandaloneScanner
+from sentinelai.core.http_client import AsyncHTTPClient
 from sentinelai.modules.recon_detector import ReconDetector
+from sentinelai.modules.dir_fuzzer import DirFuzzer
 from sentinelai.utils.report_generator import ReportGenerator
 
 
@@ -23,6 +25,7 @@ Usage:
     python -m sentinelai.cli.main                     Launch interactive terminal dashboard
     python -m sentinelai.cli.main scan <target_url>   Run full automated vulnerability scan
     python -m sentinelai.cli.main recon <domain>      Perform OSINT & Reconnaissance on domain
+    python -m sentinelai.cli.main fuzz <target_url>   Fuzz sensitive files & hidden paths
     python -m sentinelai.cli.main tools               Open the curated security tools arsenal
     python -m sentinelai.cli.main --help              Show this help message
 """)
@@ -30,7 +33,6 @@ Usage:
 
 def main():
     if len(sys.argv) == 1:
-        # Launch Interactive Dashboard
         InteractiveDashboard.main_menu()
         return
 
@@ -68,6 +70,22 @@ def main():
         print(f"[+] WAF: {res['waf']}")
         print(f"[+] Open Ports: {res['open_ports']}")
         print(f"[+] Subdomains ({len(res['subdomains'])}): {res['subdomains'][:10]}")
+    elif cmd == "fuzz":
+        if len(sys.argv) < 3:
+            print("Usage: python -m sentinelai.cli.main fuzz <target_url>")
+            sys.exit(1)
+        target = sys.argv[2]
+        print(f"[*] Starting Fast Path Fuzzing on: {target}")
+        async def _run_fuzz():
+            client = AsyncHTTPClient(timeout=10, max_concurrent=25)
+            fuzzer = DirFuzzer(client, concurrency=25)
+            res = await fuzzer.scan([target])
+            await client.close()
+            return res
+        findings = asyncio.run(_run_fuzz())
+        print(f"[+] Discovered {len(findings)} sensitive or active endpoints:")
+        for f in findings:
+            print(f"    [{f['severity']}] {f['parameter']} -> {f['evidence']}")
     elif cmd in ("tools", "arsenal"):
         InteractiveDashboard.run_arsenal_flow()
     else:

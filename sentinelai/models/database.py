@@ -199,9 +199,8 @@ class User(Base):
         }
 
 
-# Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://sentinel:sentinel@localhost/sentinelai")
-
+# Database configuration (defaults to embedded SQLite for zero-setup execution, PostgreSQL in Docker)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./sentinelai.db")
 
 # Create async engine
 engine = create_async_engine(DATABASE_URL, echo=False)
@@ -215,24 +214,29 @@ async def get_async_session() -> AsyncSession:
 
 
 async def init_db():
-    """Initialize database tables with retry logic"""
+    """Initialize database tables with automatic SQLite fallback"""
+    global engine, async_session_maker
     import asyncio
     import logging
     logger = logging.getLogger(__name__)
-    
-    max_retries = 15
-    retry_delay = 3
-    
-    for attempt in range(1, max_retries + 1):
-        try:
-            logger.info(f"Database connection attempt {attempt}/{max_retries}...")
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-            logger.info("Database tables initialized successfully.")
-            return
-        except Exception as e:
-            if attempt == max_retries:
-                logger.error(f"Failed to connect to database after {max_retries} attempts.")
-                raise e
-            logger.warning(f"Database connection failed: {e}. Retrying in {retry_delay} seconds...")
-            await asyncio.sleep(retry_delay)
+
+    # Attempt connection to configured engine
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database initialized successfully.")
+        return
+    except Exception as e:
+        logger.warning(f"Primary database connection ({DATABASE_URL}) failed: {e}. Falling back to SQLite...")
+
+    # Fallback to local SQLite if primary failed
+    fallback_url = "sqlite+aiosqlite:///./sentinelai.db"
+    try:
+        engine = create_async_engine(fallback_url, echo=False)
+        async_session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Fallback SQLite database initialized successfully at ./sentinelai.db")
+    except Exception as fe:
+        logger.error(f"Failed to initialize database: {fe}")
+        raise fe

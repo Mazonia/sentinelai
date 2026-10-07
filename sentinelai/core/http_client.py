@@ -104,12 +104,16 @@ class AsyncHTTPClient:
                 import time
                 start_time = time.time()
                 
+                req_redirects = kwargs.pop('allow_redirects', self.follow_redirects)
+                req_proxy = kwargs.pop('proxy', self.proxy)
+                req_ssl = kwargs.pop('ssl', self.ssl_context if self.verify_ssl else False)
+                
                 response = await session.request(
                     method=method,
                     url=url,
-                    allow_redirects=self.follow_redirects,
-                    proxy=self.proxy,
-                    ssl=self.ssl_context if self.verify_ssl else False,
+                    allow_redirects=req_redirects,
+                    proxy=req_proxy,
+                    ssl=req_ssl,
                     **kwargs
                 )
                 

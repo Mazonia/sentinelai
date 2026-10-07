@@ -108,10 +108,11 @@ class InjectionDetector:
         self,
         urls: List[str],
         intensity: str = "medium",
-        authentication: Optional[Dict] = None
+        authentication: Optional[Dict] = None,
+        forms: Optional[List[Dict]] = None
     ) -> List[Dict]:
         """
-        Scan URLs for injection vulnerabilities
+        Scan URLs and forms for injection vulnerabilities
         """
         logger.info(f"Starting injection scan on {len(urls)} URLs")
         
@@ -122,9 +123,70 @@ class InjectionDetector:
         for url in urls:
             tasks.append(self._scan_url(url, payloads, authentication))
         
+        if forms:
+            tasks.append(self.test_forms(forms, intensity))
+        
         await asyncio.gather(*tasks, return_exceptions=True)
         
         return self.findings
+
+    async def test_forms(
+        self,
+        forms: List[Dict],
+        intensity: str = "medium"
+    ):
+        """Test discovered HTML forms (POST and GET) for SQL injection"""
+        payloads = self._get_payloads_for_intensity(intensity).get("error_based", [])[:5]
+        for form in forms:
+            action = form.get("action")
+            if not action:
+                continue
+            method = form.get("method", "GET").upper()
+            inputs = form.get("inputs", [])
+            if not inputs:
+                continue
+
+            for input_field in inputs:
+                param_name = input_field.get("name")
+                if not param_name:
+                    continue
+
+                for payload in payloads:
+                    data = {}
+                    for f in inputs:
+                        fname = f.get("name")
+                        if not fname:
+                            continue
+                        if fname == param_name:
+                            data[fname] = payload
+                        else:
+                            data[fname] = f.get("value", "test")
+
+                    try:
+                        if method == "POST":
+                            resp = await self.http_client.post(action, data=data)
+                        else:
+                            resp = await self.http_client.get(action, params=data)
+
+                        if resp:
+                            text = await resp.text()
+                            if self._check_error_signatures(text):
+                                finding = {
+                                    "type": "sql_injection",
+                                    "subtype": "form_based",
+                                    "url": action,
+                                    "parameter": param_name,
+                                    "payload": payload,
+                                    "evidence": f"Form submission ({method}) triggered database error signature",
+                                    "severity": "critical",
+                                    "description": f"SQL Injection detected in HTML form field '{param_name}' at {action}",
+                                    "remediation": "Use parameterized queries or ORM models. Validate and sanitize form input."
+                                }
+                                self.findings.append(finding)
+                                logger.warning(f"SQL Injection in form: {action} field={param_name}")
+                                break
+                    except Exception as e:
+                        logger.debug(f"Form injection test error: {e}")
     
     def _get_payloads_for_intensity(self, intensity: str) -> Dict[str, List[str]]:
         """Get payloads based on scan intensity"""

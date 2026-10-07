@@ -80,15 +80,40 @@ python -m sentinelai.cli.main
 
 ### 3. CLI Direct Subcommands
 ```bash
-# Full Automated Scan with AI Remediation:
+# Full Automated Scan with AI Remediation & Report Generation:
 python -m sentinelai.cli.main scan https://example.com
 
-# Domain Reconnaissance & OSINT:
+# Domain Reconnaissance & OSINT (WAF, DNS, Ports, Subdomains):
 python -m sentinelai.cli.main recon example.com
 
-# Launch Security Tool Arsenal:
+# Sensitive File & Hidden Path Fuzzing:
+python -m sentinelai.cli.main fuzz https://example.com
+
+# Launch Security Tool Arsenal & Environment Manager:
 python -m sentinelai.cli.main tools
 ```
+
+### 4. Running Tests
+```bash
+pytest -v
+```
+
+---
+
+## 🌐 FastAPI REST API Endpoints
+
+SentinelAI provides a REST API that powers the web dashboard and integrates into automated DevSecOps pipelines:
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/v1/recon/{domain}` | Instant OSINT, DNS resolution, open port scanning, and WAF identification |
+| `GET` | `/api/v1/tools` | Curated security tools inventory with local host installation detection |
+| `POST` | `/api/v1/fuzz` | Fast sensitive path & file fuzzer with soft-404 wildcard filtering |
+| `POST` | `/api/v1/quick-scan` | Asynchronous standalone scan with zero database dependencies |
+| `GET` | `/api/v1/reports` | Index of all generated HTML, Markdown, and JSON audit reports |
+| `GET` | `/api/v1/reports/{filename}` | Interactive view or download of generated security reports |
+| `POST` | `/api/v1/scan` | Distributed cluster scan (uses PostgreSQL + Celery workers) |
+| `GET` | `/api/v1/scan/{id}/status` | Real-time status polling for distributed scans |
 
 ---
 

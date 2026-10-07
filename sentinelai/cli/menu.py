@@ -7,7 +7,6 @@ import os
 import sys
 from pathlib import Path
 
-# Force UTF-8 encoding on Windows to prevent UnicodeEncodeError with emojis
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -23,7 +22,9 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeEl
 
 from ..modules.arsenal import ToolArsenal, ARSENAL_CATEGORIES
 from ..modules.recon_detector import ReconDetector
+from ..modules.dir_fuzzer import DirFuzzer
 from ..core.standalone_scanner import StandaloneScanner
+from ..core.http_client import AsyncHTTPClient
 from ..utils.report_generator import ReportGenerator
 
 console = Console(force_terminal=True, highlight=False)
@@ -61,11 +62,12 @@ class InteractiveDashboard:
             table.add_column("Category / Feature", style="bold white")
             table.add_column("Description", style="dim")
 
-            table.add_row("1", "🎯 Full Target Vulnerability Scan", "Automated crawl + SQLi, XSS, SSRF, Auth, Headers + AI Remediation")
-            table.add_row("2", "🔍 Reconnaissance & OSINT Engine", "Subdomain discovery, port scanner, tech stack & WAF detection")
-            table.add_row("3", "🌐 Quick Web Vulnerability Audit", "Audit single URL for injection and client-side flaws")
-            table.add_row("4", "🧰 Security Tool Arsenal", "Launchpad for Nmap, SQLmap, Nikto, Nuclei, Gobuster, etc.")
-            table.add_row("5", "📄 Export & View Last Report", "Generate HTML, Markdown, or JSON audit reports")
+            table.add_row("1", "🎯 Full Target Vulnerability Scan", "Automated crawl + OWASP Top 10 + AI Remediation")
+            table.add_row("2", "🔍 Reconnaissance & OSINT Engine", "Subdomains, port scanner, tech stack & WAF detection")
+            table.add_row("3", "📂 Fast Directory & Sensitive File Fuzzer", "Built-in multi-threaded path fuzzer with wildcard 404 filter")
+            table.add_row("4", "🌐 Quick Web & Parameter Audit", "Audit URLs for XSS, SQLi, SSRF, LFI, and CORS")
+            table.add_row("5", "🧰 Security Tool Arsenal", "Launchpad for Nmap, SQLmap, Nikto, Nuclei, Gobuster, etc.")
+            table.add_row("6", "📄 Export & View Last Report", "Generate HTML, Markdown, or JSON audit reports")
             table.add_row("0", "🚪 Exit SentinelAI", "Quit the framework")
 
             console.print(table)
@@ -76,10 +78,12 @@ class InteractiveDashboard:
             elif choice == "2":
                 cls.run_recon_flow()
             elif choice == "3":
-                cls.run_web_audit_flow()
+                cls.run_fuzzer_flow()
             elif choice == "4":
-                cls.run_arsenal_flow()
+                cls.run_web_audit_flow()
             elif choice == "5":
+                cls.run_arsenal_flow()
+            elif choice == "6":
                 cls.export_report_flow()
             elif choice == "0":
                 console.print("\n[bold green]Stay safe! Exiting SentinelAI...[/bold green]\n")
@@ -189,6 +193,37 @@ class InteractiveDashboard:
             if len(results["subdomains"]) > 25:
                 sub_panel += f"\n...and {len(results['subdomains']) - 25} more"
             console.print(Panel(sub_panel, title="Discovered Subdomains", border_style="blue"))
+
+        Prompt.ask("\nPress Enter to return to main menu")
+
+    @classmethod
+    def run_fuzzer_flow(cls):
+        target = Prompt.ask("\n[bold cyan]Enter target URL to fuzz (e.g., https://example.com)[/bold cyan]")
+        if not target:
+            return
+
+        with console.status("[bold cyan]Asynchronously fuzzing 40+ high-value paths...[/bold cyan]"):
+            async def _fuzz():
+                client = AsyncHTTPClient(timeout=10, max_concurrent=25)
+                fuzzer = DirFuzzer(client, concurrency=25)
+                res = await fuzzer.scan([target])
+                await client.close()
+                return res
+
+            findings = asyncio.run(_fuzz())
+
+        if not findings:
+            console.print("[bold yellow]No sensitive or accessible paths found.[/bold yellow]")
+        else:
+            table = Table(title=f"[bold green]Discovered Endpoints ({len(findings)})[/bold green]", border_style="green")
+            table.add_column("Severity", style="bold")
+            table.add_column("Resource Path", style="bold white")
+            table.add_column("URL", style="cyan")
+            table.add_column("Evidence")
+
+            for f in findings:
+                table.add_row(f.get("severity"), f.get("parameter"), f.get("url"), f.get("evidence"))
+            console.print(table)
 
         Prompt.ask("\nPress Enter to return to main menu")
 

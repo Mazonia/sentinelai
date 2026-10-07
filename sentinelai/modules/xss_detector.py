@@ -45,7 +45,7 @@ class XSSDetector:
         "<%= alert('XSS') %>",
         
         # Polyglot
-        "jaVasCript:/*-/*`/*\`/*'/*\"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\\x3csVg/<sVg/oNloAd=alert()//>\\x3e",
+        r"""jaVasCript:/*-/*`/*\`/*'/*"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\x3csVg/<sVg/oNloAd=alert()//>\x3e""",
     ]
     
     DOM_PAYLOADS = [
@@ -62,7 +62,8 @@ class XSSDetector:
         self,
         urls: List[str],
         intensity: str = "medium",
-        authentication: Optional[Dict] = None
+        authentication: Optional[Dict] = None,
+        forms: Optional[List[Dict]] = None
     ) -> List[Dict]:
         """
         Scan for XSS vulnerabilities
@@ -81,9 +82,65 @@ class XSSDetector:
         for url in urls:
             tasks.append(self._scan_url(url, payloads, authentication))
         
+        if forms:
+            tasks.append(self.test_forms(forms, payloads))
+        
         await asyncio.gather(*tasks, return_exceptions=True)
         
         return self.findings
+
+    async def test_forms(self, forms: List[Dict], payloads: List[str]):
+        """Test HTML forms for reflected XSS"""
+        test_payloads = payloads[:5]
+        for form in forms:
+            action = form.get("action")
+            if not action:
+                continue
+            method = form.get("method", "GET").upper()
+            inputs = form.get("inputs", [])
+            if not inputs:
+                continue
+
+            for input_field in inputs:
+                param_name = input_field.get("name")
+                if not param_name:
+                    continue
+
+                for payload in test_payloads:
+                    data = {}
+                    for f in inputs:
+                        fname = f.get("name")
+                        if not fname:
+                            continue
+                        if fname == param_name:
+                            data[fname] = payload
+                        else:
+                            data[fname] = f.get("value", "test")
+
+                    try:
+                        if method == "POST":
+                            resp = await self.http_client.post(action, data=data)
+                        else:
+                            resp = await self.http_client.get(action, params=data)
+
+                        if resp and resp.status == 200:
+                            text = await resp.text()
+                            if payload in text and not self._is_properly_encoded(payload, text):
+                                finding = {
+                                    "type": "xss",
+                                    "subtype": "form_reflected",
+                                    "url": action,
+                                    "parameter": param_name,
+                                    "payload": payload,
+                                    "severity": "high",
+                                    "description": f"Cross-Site Scripting (XSS) detected in HTML form field '{param_name}' at {action}",
+                                    "remediation": "Implement contextual output encoding and validate form inputs."
+                                }
+                                self.findings.append(finding)
+                                logger.warning(f"XSS in form: {action} field={param_name}")
+                                break
+                    except Exception as e:
+                        logger.debug(f"Form XSS test error: {e}")
     
     async def _scan_url(
         self,

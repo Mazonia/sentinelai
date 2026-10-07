@@ -10,7 +10,7 @@ import logging
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 import uvicorn
 from sqlalchemy import select
 
@@ -37,8 +37,8 @@ class ScanRequest(BaseModel):
     ai_analysis: Optional[bool] = Field(True)
     payload_intensity: str = Field("medium", pattern="^(low|medium|high)$")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "target_url": "https://example.com",
                 "max_depth": 3,
@@ -46,6 +46,7 @@ class ScanRequest(BaseModel):
                 "modules": ["injection", "xss", "auth"]
             }
         }
+    )
 
 
 class ScanResponse(BaseModel):
@@ -77,8 +78,7 @@ class VulnerabilityResponse(BaseModel):
     module: Optional[str] = None
     created_at: Optional[str] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Global state
@@ -503,6 +503,136 @@ async def websocket_endpoint(websocket: WebSocket, scan_id: str):
         pass
     except Exception as e:
         await websocket.send_json({"error": str(e)})
+
+
+
+
+# --- Extended Security Endpoints (Recon, Fuzzing, Arsenal, Reports, Quick-Scan) ---
+
+class FuzzRequest(BaseModel):
+    target_url: str = Field(..., description="Target base URL to fuzz")
+    intensity: str = Field("medium", pattern="^(low|medium|high)$")
+    wordlist: Optional[List[str]] = Field(None, description="Optional custom paths")
+
+
+class QuickScanRequest(BaseModel):
+    target_url: str = Field(..., description="Target URL for standalone scanning")
+    enable_ai: bool = Field(True, description="Enable AI vulnerability correlation")
+
+
+@app.get("/api/v1/recon/{domain}")
+async def get_reconnaissance(domain: str):
+    """Run fast OSINT, subdomain discovery, port scanning, and tech stack fingerprinting"""
+    try:
+        from ..modules.recon_detector import ReconDetector
+        recon = ReconDetector()
+        data = await recon.scan_domain(domain)
+        return {"domain": domain, "recon": data}
+    except Exception as e:
+        logger.error(f"Recon failed for {domain}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/tools")
+async def get_tools_arsenal():
+    """List curated offensive and defensive security tools with local installation status"""
+    from ..modules.arsenal import ToolArsenal
+    tools = ToolArsenal.get_all_tools()
+    return {
+        "count": len(tools),
+        "tools": tools
+    }
+
+
+@app.post("/api/v1/fuzz")
+async def run_dir_fuzzing(req: FuzzRequest):
+    """Run fast directory and sensitive resource fuzzer with wildcard 404 detection"""
+    from ..core.http_client import AsyncHTTPClient
+    from ..modules.dir_fuzzer import DirFuzzer
+    client = AsyncHTTPClient(timeout=15, max_concurrent=25)
+    try:
+        fuzzer = DirFuzzer(client, concurrency=25)
+        findings = await fuzzer.scan([req.target_url], intensity=req.intensity, custom_wordlist=req.wordlist)
+        return {
+            "target": req.target_url,
+            "count": len(findings),
+            "findings": findings
+        }
+    except Exception as e:
+        logger.error(f"Fuzzing failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await client.close()
+
+
+@app.get("/api/v1/reports")
+async def list_generated_reports():
+    """List all generated HTML, Markdown, and JSON security audit reports"""
+    from pathlib import Path
+    reports_dir = Path("reports")
+    if not reports_dir.exists():
+        return {"reports": []}
+
+    file_list = []
+    for f in reports_dir.glob("*.*"):
+        if f.suffix in [".html", ".md", ".json"]:
+            stat = f.stat()
+            file_list.append({
+                "filename": f.name,
+                "size_bytes": stat.st_size,
+                "created_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "format": f.suffix[1:]
+            })
+    return {"reports": sorted(file_list, key=lambda x: x["created_at"], reverse=True)}
+
+
+@app.get("/api/v1/reports/{filename}")
+async def get_report_content(filename: str):
+    """Retrieve report content by filename"""
+    from pathlib import Path
+    from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
+    reports_dir = Path("reports")
+    report_file = reports_dir / filename
+    if not report_file.exists() or ".." in filename:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    content = report_file.read_text(encoding="utf-8", errors="replace")
+    if filename.endswith(".html"):
+        return HTMLResponse(content)
+    elif filename.endswith(".json"):
+        import json
+        return JSONResponse(json.loads(content))
+    else:
+        return PlainTextResponse(content)
+
+
+@app.post("/api/v1/quick-scan")
+async def run_standalone_quick_scan(req: QuickScanRequest, background_tasks: BackgroundTasks):
+    """Execute a zero-database standalone scan and automatically generate reports"""
+    from ..core.standalone_scanner import StandaloneScanner
+    from ..utils.report_generator import ReportGenerator
+    import uuid
+
+    scan_id = f"standalone-{uuid.uuid4().hex[:8]}"
+
+    async def _do_scan(sid: str, target: str, ai: bool):
+        scanner = StandaloneScanner()
+        try:
+            results = await scanner.run_full_scan(target, enable_ai=ai)
+            reporter = ReportGenerator(results)
+            rep_files = reporter.save_all()
+            results["reports"] = rep_files
+            scan_results[sid] = results
+        except Exception as err:
+            logger.error(f"Standalone quick scan failed: {err}")
+            scan_results[sid] = {"error": str(err), "status": "failed"}
+
+    background_tasks.add_task(_do_scan, scan_id, req.target_url, req.enable_ai)
+    return {
+        "scan_id": scan_id,
+        "target": req.target_url,
+        "message": "Standalone scan started. Results will be saved to ./reports and scan results."
+    }
 
 
 if __name__ == "__main__":
